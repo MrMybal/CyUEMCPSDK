@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "codex-app-server",
+  "label": "Codex \u00b7 App Server",
+  "provider": "codex",
+  "transport": "app-server",
+  "description": "Persistent Codex connection. Models are discovered automatically.",
+  "checkOnStartup": true
+}

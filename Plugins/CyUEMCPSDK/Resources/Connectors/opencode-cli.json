@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "opencode-cli",
+  "label": "OpenCode CLI",
+  "provider": "opencode",
+  "transport": "cli-jsonl",
+  "description": "OpenCode CLI",
+  "checkOnStartup": true,
+  "endpoint": "",
+  "apiKeyEnv": ""
+}

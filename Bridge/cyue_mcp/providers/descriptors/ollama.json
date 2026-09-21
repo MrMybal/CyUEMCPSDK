@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "id": "ollama",
+  "name": "Ollama",
+  "vendor": "Ollama",
+  "categories": [
+    "model-provider"
+  ],
+  "phase": 2,
+  "preferred_transport": "http-ndjson",
+  "transports": [
+    {
+      "id": "http-ndjson",
+      "implemented": true,
+      "evidence": "SDK 0.1.5 HTTP transport; fixture and live results recorded separately"
+    }
+  ],
+  "fallback_policy": "explicit-selection; never retry a submitted turn automatically",
+  "discovery": {
+    "executables": [
+      "ollama"
+    ],
+    "paths": [],
+    "configured_path": true
+  },
+  "authentication": {
+    "method": "local",
+    "secrets_persisted": false
+  },
+  "capabilities": {
+    "models": "declared",
+    "sessions": "declared",
+    "resume": "unsupported",
+    "streaming": "declared",
+    "tools": "unsupported",
+    "mcp": "unsupported",
+    "acp": "unknown",
+    "structured_output": "unknown",
+    "persistent_process": "unsupported"
+  },
+  "documentation": "https://docs.ollama.com/api",
+  "limitations": [
+    "Text/PDF text input; no image/video perception in this adapter.",
+    "Conversation history is application-owned; no native resume.",
+    "No tool execution; no automatic retry after submission.",
+    "Cancellation checked while reading; stalled network IO may wait until its bounded socket timeout."
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "codex-cli",
+  "label": "Codex CLI",
+  "provider": "codex",
+  "transport": "cli-jsonl",
+  "description": "Codex command-line connector.",
+  "checkOnStartup": true
+}

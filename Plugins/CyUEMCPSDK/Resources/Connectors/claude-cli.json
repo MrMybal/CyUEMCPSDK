@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "claude-cli",
+  "label": "Claude CLI",
+  "provider": "claude-code",
+  "transport": "cli-jsonl",
+  "description": "Claude Code CLI with your existing account.",
+  "checkOnStartup": true
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "anthropic-api",
+  "label": "Claude API",
+  "provider": "anthropic",
+  "transport": "http-sse",
+  "description": "Claude API",
+  "checkOnStartup": true,
+  "endpoint": "https://api.anthropic.com/v1",
+  "apiKeyEnv": "ANTHROPIC_API_KEY"
+}

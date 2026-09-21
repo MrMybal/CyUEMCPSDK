@@ -1,0 +1,23 @@
+{
+  "FileVersion": 3,
+  "Version": 6,
+  "VersionName": "0.1.5",
+  "FriendlyName": "Cy Unreal MCP",
+  "Description": "Minimal host for CyUEMCPSDK: editor context, selection, transactional actor labels, assistant.",
+  "Category": "Cyberalien",
+  "CanContainContent": false,
+  "Installed": false,
+  "Plugins": [
+    {
+      "Name": "CyUEMCPSDK",
+      "Enabled": true
+    }
+  ],
+  "Modules": [
+    {
+      "Name": "CyUEMCP",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit"
+    }
+  ]
+}

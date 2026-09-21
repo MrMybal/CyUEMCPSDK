@@ -1,0 +1,33 @@
+{
+  "FileVersion": 3,
+  "Version": 6,
+  "VersionName": "0.1.5",
+  "FriendlyName": "Cy Unreal MCP SDK",
+  "Description": "CyTools conventions, modular Unreal bridge and assistant.",
+  "Category": "Cyberalien",
+  "CreatedBy": "Cyberalien",
+  "CanContainContent": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "CyUEMCPCore",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "CyUEMCPBridge",
+      "Type": "Editor",
+      "LoadingPhase": "None"
+    },
+    {
+      "Name": "CyUEAssistant",
+      "Type": "Editor",
+      "LoadingPhase": "None"
+    },
+    {
+      "Name": "CyUELocalInference",
+      "Type": "Editor",
+      "LoadingPhase": "None"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "id": "openrouter",
+  "name": "OpenRouter",
+  "vendor": "OpenRouter",
+  "categories": [
+    "model-provider"
+  ],
+  "phase": 2,
+  "preferred_transport": "http-sse",
+  "transports": [
+    {
+      "id": "http-sse",
+      "implemented": true,
+      "evidence": "SDK 0.1.5 HTTP transport; fixture and live results recorded separately"
+    }
+  ],
+  "fallback_policy": "explicit-selection; never retry a submitted turn automatically",
+  "discovery": {
+    "executables": [],
+    "paths": [],
+    "configured_path": true
+  },
+  "authentication": {
+    "method": "api-key-env",
+    "secrets_persisted": false
+  },
+  "capabilities": {
+    "models": "declared",
+    "sessions": "declared",
+    "resume": "unsupported",
+    "streaming": "declared",
+    "tools": "unsupported",
+    "mcp": "unsupported",
+    "acp": "unknown",
+    "structured_output": "unknown",
+    "persistent_process": "unsupported"
+  },
+  "documentation": "https://openrouter.ai/docs/quickstart",
+  "limitations": [
+    "Text/PDF text input; no image/video perception in this adapter.",
+    "Conversation history is application-owned; no native resume.",
+    "No tool execution; no automatic retry after submission.",
+    "Cancellation checked while reading; stalled network IO may wait until its bounded socket timeout."
+  ]
+}

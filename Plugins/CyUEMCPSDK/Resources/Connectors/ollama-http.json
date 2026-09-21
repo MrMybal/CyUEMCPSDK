@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "ollama-http",
+  "label": "Ollama",
+  "provider": "ollama",
+  "transport": "http-ndjson",
+  "description": "Ollama",
+  "checkOnStartup": true,
+  "endpoint": "http://127.0.0.1:11434",
+  "apiKeyEnv": ""
+}

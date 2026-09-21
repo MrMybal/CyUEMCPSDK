@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "antigravity-cli",
+  "label": "Antigravity CLI",
+  "provider": "antigravity",
+  "transport": "cli-jsonl",
+  "description": "Antigravity CLI",
+  "checkOnStartup": true,
+  "endpoint": "",
+  "apiKeyEnv": ""
+}

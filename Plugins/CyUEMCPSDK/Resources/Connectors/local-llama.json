@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "local-llama",
+  "label": "Local \u00b7 llama.cpp",
+  "provider": "local",
+  "transport": "llama-http",
+  "description": "Choose and start a GGUF in Local model settings.",
+  "checkOnStartup": false
+}
