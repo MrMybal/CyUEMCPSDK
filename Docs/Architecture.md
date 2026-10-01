@@ -1,6 +1,6 @@
 # CyUEMCPSDK architecture
 
-Version 0.1.5. Target: Unreal Engine 5.3–5.8.
+Version 0.1.6. Target: Unreal Engine 5.3–5.8.
 A version is validated only after its actual compilation and runtime checks.
 
 ## Shared foundations
@@ -39,7 +39,8 @@ observations remain separate. A descriptor is not an implemented connector.
 One editor companion is shared by the settings controller and all conversation tabs.
 Each tab owns a separate SDK session, provider conversation and web renderer. Closing
 a tab finishes its task without cancelling another tab. Connector presets come from
-Resources/Connectors JSON; profile settings are snapshotted when opening a conversation.
+Resources/Connectors JSON; model/transport settings are snapshotted when opening a conversation. Saved profile
+permissions synchronize to matching chats between turns without replacing native history.
 
 Each conversation belongs to an authenticated transport identity. Clients cannot
 claim ownership with a business parameter. One active turn per conversation;

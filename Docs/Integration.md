@@ -29,6 +29,13 @@ Editor services belong in the target's Editor module. Keep existing runtime busi
 modules free of Editor dependencies. Preserve Core contracts; package or provision the
 official Python packages without a developer-machine dependency or a forked runtime.
 
+## Contextual assistant views
+
+Read [AssistantContexts.md](AssistantContexts.md) when including the assistant.
+Create one view per host/toolkit context and pass its plugin/document identity;
+never share one chat widget across distinct plugin panels. Preserve asset reference
+drops, the viewport capture action, the version footer and synchronized permissions.
+
 ## Operation registration
 
 The following example uses the reference SDK module names. When embedding it, adapt

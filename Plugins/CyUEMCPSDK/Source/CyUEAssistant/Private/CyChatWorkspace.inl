@@ -10,6 +10,8 @@ class SCyChatWorkspace : public SCompoundWidget
     TMap<SCyPanel *, int32> Numbers;
 
   public:
+    FCyAssistantContext Context;
+    TFunction<FCyAssistantContext()> ResolveContext;
     TFunction<void(const FString &)> LogSink;
     SLATE_BEGIN_ARGS(SCyChatWorkspace)
     {
@@ -17,11 +19,13 @@ class SCyChatWorkspace : public SCompoundWidget
     SLATE_END_ARGS()
     void Construct(const FArguments &)
     {
-        ChildSlot[SNew(SVerticalBox) +
-                  SVerticalBox::Slot().AutoHeight().Padding(
-                      4)[SNew(SScrollBox).Orientation(Orient_Horizontal) +
-                         SScrollBox::Slot()[SAssignNew(Tabs, SHorizontalBox)]] +
-                  SVerticalBox::Slot().FillHeight(1)[SAssignNew(Pages, SWidgetSwitcher)]];
+        Tabs = SNew(SHorizontalBox);
+        ChildSlot[SAssignNew(Pages, SWidgetSwitcher)];
+    }
+    TSharedRef<SWidget> TabBar()
+    {
+        return SNew(SScrollBox).Orientation(Orient_Horizontal)
+            + SScrollBox::Slot()[Tabs.ToSharedRef()];
     }
     void Initialize(TFunction<void(FName)> Open)
     {
@@ -39,6 +43,8 @@ class SCyChatWorkspace : public SCompoundWidget
     void AddChat()
     {
         auto P = SNew(SCyPanel).OwnBridge(false);
+        P->HostContext = Context;
+        P->ResolveHostContext = ResolveContext;
         P->OpenNativeTab = OpenSettings;
         TWeakPtr<SCyChatWorkspace> Weak = SharedThis(this);
         int32 Number = NextNumber;
@@ -96,8 +102,8 @@ class SCyChatWorkspace : public SCompoundWidget
         Tabs->AddSlot()
             .AutoWidth()
             .VAlign(VAlign_Center)
-            .Padding(4, 0)[SNew(SBox).WidthOverride(26).HeightOverride(
-                26)[SNew(SButton)
+            .Padding(4, 0)[SNew(SBox).WidthOverride(24).HeightOverride(
+                24)[SNew(SButton)
                         .ButtonStyle(&FCyTabAppearance::Get().Icon)
                         .HAlign(HAlign_Center)
                         .VAlign(VAlign_Center)

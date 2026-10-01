@@ -26,7 +26,7 @@ class SCyChromeTab : public SCompoundWidget
     FSimpleDelegate Select, Close;
 
   public:
-    SLATE_BEGIN_ARGS(SCyChromeTab) : _Active(false), _Width(150.f)
+    SLATE_BEGIN_ARGS(SCyChromeTab) : _Active(false), _Width(124.f)
     {
     }
     SLATE_ATTRIBUTE(FText, Label)
@@ -43,9 +43,9 @@ class SCyChromeTab : public SCompoundWidget
         SetCursor(EMouseCursor::Default);
         ChildSlot[SNew(SBox)
                       .WidthOverride(Args._Width)
-                      .HeightOverride(34)
+                      .HeightOverride(28)
                           [SNew(SBorder)
-                               .Padding(FMargin(12, 0, 6, 0))
+                               .Padding(FMargin(9, 0, 4, 0))
                                .BorderImage_Lambda([this]() -> const FSlateBrush * {
                                    const auto &Style = FCyTabAppearance::Get();
                                    return Active.Get()  ? &Style.Active
@@ -63,7 +63,7 @@ class SCyChromeTab : public SCompoundWidget
                                                                      : FLinearColor(.55f, .58f, .64f));
                                                          })] +
                                   SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-                                      [SNew(SBox).WidthOverride(24).HeightOverride(24).Visibility(
+                                      [SNew(SBox).WidthOverride(20).HeightOverride(20).Visibility(
                                           Close.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
                                            [SNew(SButton)
                                                 .ButtonStyle(&FCyTabAppearance::Get().Icon)

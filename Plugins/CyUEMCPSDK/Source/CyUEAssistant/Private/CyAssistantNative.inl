@@ -92,14 +92,26 @@ FString Setting(const TCHAR *Key, const TCHAR *Default = TEXT("")) const
     GConfig->GetString(TEXT("CyUEMCP"), Key, V, GEditorPerProjectIni);
     return V.IsEmpty() ? FString(Default) : V;
 }
-void SaveProfiles()
+void SaveProfiles(const FString& EditedId = TEXT(""))
 {
+    // Background connection probes must never overwrite permissions saved by another view.
+    TMap<FString, FString> SavedAccess;
+    auto Saved = CyUEJson::Parse(Setting(TEXT("ProfilesV1")));
+    const TArray<TSharedPtr<FJsonValue>>* Previous = nullptr;
+    if (Saved && Saved->TryGetArrayField(TEXT("profiles"), Previous))
+        for (auto Row : *Previous)
+        {
+            auto O = Row->AsObject(); FString Id, Access;
+            if (O && O->TryGetStringField(TEXT("id"), Id) && O->TryGetStringField(TEXT("access"), Access)) SavedAccess.Add(Id, Access);
+        }
+
     auto Root = MakeShared<FJsonObject>();
     Root->SetNumberField(TEXT("version"), 1);
     Root->SetStringField(TEXT("selected"), Selected ? Selected->Id : TEXT(""));
     TArray<TSharedPtr<FJsonValue>> Rows;
     for (auto P : Profiles)
     {
+        if (P->Id != EditedId && SavedAccess.Contains(P->Id)) P->Access = SavedAccess[P->Id];
         auto O = MakeShared<FJsonObject>();
         O->SetStringField(TEXT("id"), P->Id);
         O->SetStringField(TEXT("name"), P->Name);
@@ -252,10 +264,48 @@ void QueueCheck(TSharedPtr<FProfile> P)
     if (Session.IsEmpty())
         Start();
 }
+FString AccessAttempt, AccessRevision;
+void RefreshSavedAccess()
+{
+    if (!Selected || bOwnBridge) return;
+    FString Revision = Setting(TEXT("PermissionsRevision"));
+    if (Revision != AccessRevision) { AccessRevision = Revision; AccessAttempt.Empty(); }
+
+    auto Saved = CyUEJson::Parse(Setting(TEXT("ProfilesV1")));
+    const TArray<TSharedPtr<FJsonValue>>* Rows = nullptr;
+    if (Saved && Saved->TryGetArrayField(TEXT("profiles"), Rows))
+        for (auto V : *Rows)
+        {
+            auto O = V->AsObject(); FString Id, Access;
+            if (O && O->TryGetStringField(TEXT("id"), Id) && Id == Selected->Id &&
+                O->TryGetStringField(TEXT("access"), Access) && Selected->Access != Access)
+            {
+                Selected->Access = Access;
+                AccessAttempt.Empty();
+                NotifyProfile();
+            }
+        }
+}
 void PumpAssistant()
 {
+    RefreshSavedAccess();
     if (Session.IsEmpty() || !Job.IsEmpty() || bSubmitting)
         return;
+    if (Selected && !Conversation.IsEmpty() && Selected->Access != ActualAccess && AccessAttempt != Selected->Access)
+    {
+        AccessAttempt = Selected->Access;
+        auto P = MakeShared<FJsonObject>();
+        P->SetStringField(TEXT("conversationId"), Conversation);
+        P->SetStringField(TEXT("access"), Selected->Access);
+        NativeStatus = TEXT("Applying conversation permissions...");
+        Submit(TEXT("assistant_set_access"), P);
+        return;
+    }
+    if (PendingSend && Selected && !Conversation.IsEmpty() && Selected->Access != ActualAccess)
+    {
+        AssistantFailure(TEXT("Permissions were not applied. Save permissions again before sending."));
+        return;
+    }
     if (PendingSend)
     {
         if (Conversation.IsEmpty())
@@ -380,7 +430,8 @@ void SaveEditedProfile(bool bTest)
     P->bStartup = bDraftStartup;
     P->Endpoint = EndpointField->GetText().ToString();
     P->KeyEnv = KeyEnvField->GetText().ToString();
-    SaveProfiles();
+    GConfig->SetString(TEXT("CyUEMCP"), TEXT("PermissionsRevision"), *FGuid::NewGuid().ToString(), GEditorPerProjectIni);
+    SaveProfiles(P->Id);
     RefreshProfiles();
     if (bTest)
         QueueCheck(P);
@@ -497,8 +548,8 @@ TSharedRef<SWidget> ConnectionsWidget()
     Basic->AddSlot()
         .AutoHeight()[SNew(STextBlock)
                           .AutoWrapText(true)
-                          .Text(FText::FromString(TEXT("Changes apply to new conversations. Each chat keeps "
-                                                       "the connection and permissions it started with.")))];
+                          .Text(FText::FromString(TEXT("Saved permissions apply to existing chats after the current turn. "
+                                                       "Model and connector changes apply to new conversations.")))];
     Rights->AddSlot().AutoHeight().Padding(0, 0, 0, 12)[SNew(STextBlock).Text_Lambda([this] {
         return FText::FromString(TEXT("Permissions - ") + (Editing ? Editing->Name : TEXT("")));
     })];

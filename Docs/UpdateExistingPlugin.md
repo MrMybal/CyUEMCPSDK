@@ -1,7 +1,7 @@
 # Mettre à jour un plugin Unreal déjà intégré
 
 Ce guide concerne une migration, pas une première intégration. Référence actuelle :
-CyUEMCPSDK 0.1.5. Lire la version réellement présente dans README.md et les fichiers
+CyUEMCPSDK 0.1.6. Lire la version réellement présente dans README.md et les fichiers
 .uplugin au moment de l'intervention. Adapter au plugin cible ; ne pas repartir de zéro.
 
 ## 1. Sauvegarder avant toute modification
@@ -22,6 +22,8 @@ Sources de référence : <SDK_ROOT>. Socle : <CORE_ROOT>.
 Ces chemins servent au développement local, jamais de chemins requis chez le client.
 Lire README.md, Docs/Integration.md, Docs/ProjectIntegration.md, Docs/Architecture.md,
 Docs/AssistantUI.md, Docs/Providers.md, Docs/ConnectorConventions.md et Docs/Validation.md.
+Pour la migration de l’interface et du multi-instance, appliquer aussi
+[UpdateAssistantInterface.md](UpdateAssistantInterface.md) et [AssistantContexts.md](AssistantContexts.md).
 Pour les opérations et artefacts, lire aussi les guides CyToolsCore AutomaticInputs,
 TaskFiles et FullOperationAccess. Les instructions du projet cible restent applicables.
 
@@ -69,11 +71,15 @@ Cette règle remplace l'ancien montage par plugins CyUEMCPSDK + CyUEMCP séparé
 
 ## 4. Adapter l'interface de l'assistant existant
 
-Une seule entrée **Assistant** dans Window. Si le projet a déjà une fenêtre équivalente,
-la réutiliser. Préserver les autres fenêtres métier légitimes du plugin.
+Ne pas ajouter d’entrée globale **Assistant** ni **New assistant window** dans le
+menu Window par défaut. L’ouverture appartient à l’interface du plugin ou du toolkit
+hôte, avec son contexte. Retirer les anciennes entrées ajoutées par l’intégration,
+sans supprimer les menus d’un autre plugin. Préserver les fenêtres métier légitimes.
 
-- Assistant contient **Chat** et **Settings** ; pas de fenêtres séparées Connections,
-  Local Model ou Connection Logs ajoutées par le SDK.
+- Une seule barre compacte : conversations à gauche, engrenage Settings à droite.
+  Supprimer la rangée supplémentaire Chat / Settings. Les réglages restent dans
+  chaque instance ; pas de fenêtres séparées Connections, Local Model ou Logs.
+  Afficher la version réelle de l’assistant en petit en bas.
 - Onglets natifs façon Chrome : formes arrondies, état actif lisible, croix intégrée,
   bouton + discret, plusieurs conversations indépendantes. Pas une rangée de boutons
   standard pour simuler des onglets. Le clic central peut fermer une conversation.
@@ -150,9 +156,10 @@ vigueur lors de la préparation du package ; ne pas annoncer une approbation Fab
 
 ## 8. Valider et livrer la migration
 
-- Compiler les versions UE déclarées, dans la plage 5.3–5.8 demandée. Ne pas annoncer
+- Pour cette évolution UI 0.1.6, commencer par UE 5.3, sauf autre demande explicite.
+  Après validation de l’interface, compiler les autres versions demandées. Ne pas annoncer
   compatible une version seulement supposée ; préciser tout moteur indisponible.
-- Tester en contexte natif : fenêtre unique, Providers/local/logs, création/modification
+- Tester en contexte natif : instances contextuelles indépendantes, Providers/local/logs, création/modification
   des profils, échec puis retest de connexion, vraie réponse d'un provider disponible,
   affichage du modèle, deux conversations indépendantes et conservation après fermeture.
 - Vérifier les droits lecture/écriture dans un périmètre de test, les opérations MCP

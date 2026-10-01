@@ -1,6 +1,6 @@
 # Providers — 0.1.5
 
-Open **Window > Assistant > Settings > Providers**. A provider profile selects a
+Open the assistant from its owning plugin/toolkit, then **Settings > Providers**. A provider profile selects a
 connector, implemented transport and model. Duplicate a preset with + New profile,
 Test connection to discover status/models, choose the model and save. A new chat
 snapshots that profile. Existing chats retain their settings.

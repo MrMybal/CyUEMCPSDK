@@ -1,13 +1,13 @@
-# Assistant UI — 0.1.5
+# Assistant UI — 0.1.6
 
-Open **Window > Assistant** in the example project. The packaged local web UI
+Open the assistant from its owning plugin/toolkit. No global Window menu entry is added by default. The packaged local web UI
 runs inside Slate's WebBrowser/CEF. Node, CyMD, CyAIOrchestrator and CyAIConnectorLab
 are not runtime dependencies. CyAIOrchestrator's draft attachments, paste/drop and
 media cards were examined as a UX reference; its application is not imported.
 
 ## Conversations and settings
 
-The UI is English by default. **Assistant > Chat** has a horizontal conversation tab strip with rounded native
+The UI is English by default. **Assistant** has a horizontal conversation tab strip with rounded native
 Chrome-style tabs, integrated close icons, middle-click closing and a flat + control.
 Use **+** to start a separate conversation. Each tab owns its provider session,
 messages, drafts, attachments and running request. Switching does not restart it;
@@ -36,8 +36,9 @@ as an implementation of the separate official SDK transport.
 
 Create additional profiles with **+ New profile**, based on the selected connector.
 Each has a Test connection action and an optional startup check. Connection tests do
-not create conversations or send inference requests. New conversations snapshot the
-profile settings; changing a profile or permissions does not change an existing chat.
+not create conversations or send inference requests. New conversations snapshot model and connector settings. Saved permissions synchronize
+to existing chats between turns, with the effective policy acknowledged by the companion.
+An active turn finishes under its original policy; history is preserved.
 Unsaved permissions remain draft values and are not persisted by background checks.
 
 Copy selected text normally. Right-click a message for Copy message. No persistent
@@ -47,7 +48,7 @@ near the bottom, so reading earlier messages is not interrupted.
 
 **Settings > Providers > Local · llama.cpp** contains the engine controls.
 **Settings > Connection logs** contains the shared log. There are no additional
-Connections/Local Model/Logs entries in Unreal's Window menu.
+Connections/Local Model/Logs entries in Unreal's Window menu, nor a default global Assistant entry.
 Logs merge conversations with a tab identifier and support selection, Copy all and
 export. Profiles persist in the project's user Editor INI without account secrets.
 Authentication reuses the installed CLI account. Weights are never copied by profiles.
@@ -128,3 +129,24 @@ See Reports for actual tested versions; build success alone is not a GUI check.
 References: https://developers.openai.com/fr-FR/docs/app-server and
 https://code.claude.com/docs/en/cli-reference; local CyAIOrchestrator cyai/media.py,
 cyai/web/media.js and cyai/connectors.py were inspected for UX and transport examples.
+
+## Compact layout preview (UE 5.3)
+
+The conversation strip is the only top row: 28-pixel tabs and a fixed Settings
+gear at the right edge. Settings replaces the content in the same window; use
+the back arrow or the gear to return without recreating the conversation.
+This layout preview is compiled and checked on UE 5.3 only, pending review.
+
+## Contextual views and editor attachments (0.1.6, UE 5.3 preview)
+
+Use the owning plugin/toolkit’s new-instance action for another independent window. Integrators use
+`ICyUEAssistantModule::CreateAssistant` for a dock/toolkit and `OpenAssistant` for a
+window. See [AssistantContexts.md](AssistantContexts.md). Every view owns separate
+chat tasks, drafts, uploads and provider histories. The companion remains shared.
+
+Drop Content Browser assets onto the chat: reference chips carry the object path,
+name and class, without copying .uasset files. The camera button beside + captures
+the active editor viewport as a temporary PNG attachment; it is sent only with Send.
+Remove, successful send and view closure clean staged screenshots. Model image
+support still depends on the selected connector. The footer displays the actual
+plugin descriptor version in small text, including on Settings pages.

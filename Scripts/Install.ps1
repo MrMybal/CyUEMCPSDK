@@ -16,6 +16,6 @@ foreach($Name in @('CyUEMCPSDK','CyUEMCP')){
  Copy-Item -LiteralPath "$Root\Plugins\$Name\Source" -Destination $Target -Recurse
  Copy-Item -LiteralPath "$Root\Builds\UE$Version\Plugins\$Name\Binaries" -Destination $Target -Recurse
 }
-Write-Output 'Enable CyUEMCP in Unreal Plugins, then restart and open Window > Assistant.'
+Write-Output 'Enable CyUEMCP in Unreal Plugins, then restart. Open the assistant from its host integration; see Docs/AssistantContexts.md.'
 Write-Output "Companion Python: $Root\Runtime\python\Scripts\python.exe"
 Write-Output "Companion script: $Root\Bridge\run.py"

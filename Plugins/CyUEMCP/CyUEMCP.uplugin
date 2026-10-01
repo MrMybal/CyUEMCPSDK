@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
-  "Version": 6,
-  "VersionName": "0.1.5",
+  "Version": 7,
+  "VersionName": "0.1.6",
   "FriendlyName": "Cy Unreal MCP",
   "Description": "Minimal host for CyUEMCPSDK: editor context, selection, transactional actor labels, assistant.",
   "Category": "Cyberalien",

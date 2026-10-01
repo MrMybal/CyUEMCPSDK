@@ -33,3 +33,48 @@ def test_permissions_are_owned_by_the_conversation_and_use_host_project(tmp_path
         assert service.send('owner',write['conversationId'],'still here')['text']=='still here'
         with pytest.raises(ConnectorError): service.open('owner','codex',access='full-access')
     finally:service.shutdown()
+
+
+def test_live_policy_change_preserves_history_and_is_owned(tmp_path):
+    catalog=lambda:{'codex':{'preferred_transport':'app-server','transports':[{'id':'app-server','implemented':True}]}}
+    service=ConnectorService(tmp_path,factory=Fake,catalog=catalog)
+    try:
+        cid=service.open('owner','codex')['conversationId']
+        item=service._owned('owner',cid)
+        native=item.transport.session
+        service.send('owner',cid,'first')
+        assert service.set_access('owner',cid,'workspace-write')['access']=='workspace-write'
+        assert item.transport.session is native
+        assert service.send('owner',cid,'second')['access']=='workspace-write'
+        with pytest.raises(ConnectorError):service.set_access('other',cid,'read-only')
+        with pytest.raises(ConnectorError):service.set_access('owner',cid,'full-access')
+        item.lock.acquire()
+        try:
+            with pytest.raises(ConnectorError,match='current turn'):service.set_access('owner',cid,'read-only')
+            assert item.transport.config['access']=='workspace-write'
+        finally:item.lock.release()
+        assert service.set_access('owner',cid,'read-only')['access']=='read-only'
+        assert item.transport.calls==['connect','start','first','second']
+    finally:service.shutdown()
+
+
+def test_context_and_asset_references_are_metadata_not_copied_files(tmp_path):
+    from types import SimpleNamespace
+    from cyue_mcp.service import Companion
+    from test_connectors import CATALOG
+    companion=Companion.__new__(Companion)
+    companion.connectors=ConnectorService(tmp_path,factory=Fake,catalog=lambda:CATALOG)
+    owner='client:task'
+    cid=companion.connectors.open(owner,'fake')['conversationId']
+    ctx=SimpleNamespace(job_id='job',workspace=tmp_path,
+        runtime=SimpleNamespace(store=SimpleNamespace(all=lambda _: {'job':{'clientId':'client','sessionId':'task'}})),
+        cancellation=SimpleNamespace(check=lambda:None),emit=lambda *args:None)
+    try:
+        result=companion._assistant(ctx,'assistant_send',{'conversationId':cid,'text':'Explain this asset',
+            'context':{'id':'plugin-a:document-a','label':'Material editor','asset':'/Game/Materials/Test.Test'},
+            'references':[{'path':'/Game/Meshes/Cube.Cube','name':'Cube','class':'StaticMesh'}]})
+        assert '/Game/Meshes/Cube.Cube' in result['text']
+        assert 'plugin-a:document-a' in result['text']
+        assert not list(tmp_path.rglob('*.uasset'))
+        assert companion.connectors._owned(owner,cid).transport.config['cwd']==str(tmp_path.resolve())
+    finally:companion.connectors.shutdown()

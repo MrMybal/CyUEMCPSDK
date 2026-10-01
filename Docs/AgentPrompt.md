@@ -38,7 +38,7 @@ et les limites exactes pour les versions Unreal demandées entre 5.3 et 5.8.
 
 ## Assistant UI integration (0.1.3)
 Read AssistantUI.md. Reuse an existing rich chat when available. Otherwise use the
-packaged CyUEAssistant with one Assistant window, Chat and native Settings pages.
+adapted CyUEAssistant with independent contextual views and native Settings pages.
 Preserve Markdown, selectable/copyable messages, attachment drafts, paste/drop,
 image inputs when implemented, and media/mesh previews. Do not substitute a long
 vertical diagnostic form. Keep adapter input capabilities distinct from preview
@@ -67,18 +67,20 @@ automatic discovery. Show actual connector transport and model in every conversa
 Profiles and conversations are different: provide multiple independent chat tabs.
 Keep common connection fields simple; move paths/transport overrides to Advanced.
 Provide a Permissions section whose controls are enforced by the backend, scoped and
-snapshotted per conversation; no cosmetic permission toggles. Keep a separate explicit
+applied between turns to existing chats after backend acknowledgement; no cosmetic permission toggles. Keep a separate explicit
 editor-wide MCP write gate. Do not place permanent Copy message buttons in the feed.
 Use text selection/context actions, frame-batched streaming and non-forcing scrolling.
 Test real concurrent conversations, switching, closing one without affecting another,
 and read-only refusal versus authorized editing before claiming them functional.
 
 
-## Single Assistant window and Providers (0.1.5)
+## Assistant views and Providers (0.1.6)
 
-Read Providers.md. Register only Assistant in Unreal's Window menu. Use native
-Chrome-style tabs with integrated close controls for conversations, and the same
-visual language for Chat/Settings and settings subpages. Providers includes CLI/API
+Read Providers.md, UpdateAssistantInterface.md and AssistantContexts.md. Provide
+assistant and new-instance actions through the existing host UI only. Do not add
+global Assistant/New assistant window entries or generic global tab spawners by default. Use compact native
+Chrome-style conversation tabs with integrated close controls, a Settings gear at
+the right and native settings subpages; do not add a separate Chat/Settings row. Providers includes CLI/API
 connections AND local inference; do not create a separate Local Model settings window.
 Keep one data definition per connector, default profiles, discovery and manual retests.
 Persist endpoint and environment-variable key names, never API keys in profile data.

@@ -1,5 +1,10 @@
 #include "Containers/Ticker.h"
 #include "CyAssistantWebHost.h"
+#include "CyUEAssistant.h"
+#include "DragAndDrop/AssetDragDropOp.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
+#include "UnrealClient.h"
 #include "CyUEBridge.h"
 #include "CyUELocalInference.h"
 #include "CyUERegistry.h"
@@ -21,6 +26,7 @@
 #include "Misc/DateTime.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/App.h"
 #include "Modules/ModuleManager.h"
 #include "SWebBrowser.h"
 #include "ToolMenus.h"
@@ -41,6 +47,8 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Widgets/Layout/SBorder.h"
 #include "InputCoreTypes.h"
+#include "Styling/AppStyle.h"
+#include "Widgets/Images/SImage.h"
 #include "CyChromeTabs.inl"
 #define LOCTEXT_NAMESPACE "CyUEAssistant"
 class SCyPanel : public SCompoundWidget
@@ -67,6 +75,8 @@ class SCyPanel : public SCompoundWidget
     bool bPolling = false;
 
   public:
+    FCyAssistantContext HostContext;
+    TFunction<FCyAssistantContext()> ResolveHostContext;
     bool bPageReady = false;
     TFunction<void(const FString &)> ForwardLog;
 #include "CyAssistantNative.inl"
@@ -77,6 +87,10 @@ class SCyPanel : public SCompoundWidget
     }
     bool bSmokeJobCompleted = false;
     bool bSmokeChatRendered = false;
+    FString SmokeDraft;
+    FString SmokeSession() const { return Session; }
+    int32 SmokeUploadCount() const { return Uploads.Num(); }
+    void SmokeQueryDraft() { Browser->ExecuteJavascript(TEXT("window.ue.host.postmessage(JSON.stringify({action:'testDraft',text:document.getElementById('attachments').innerText}));")); }
     void SmokeSend()
     {
         Browser->ExecuteJavascript(TEXT("window.cyNativeTest=true;document.getElementById('prompt').value='"
@@ -239,6 +253,56 @@ class SCyPanel : public SCompoundWidget
         Browser->ExecuteJavascript(TEXT("window.cyReceive&&window.cyReceive(") + CyUEJson::Stringify(O) +
                                    TEXT(")"));
     }
+    FReply OnDragOver(const FGeometry&, const FDragDropEvent& Event) override
+    {
+        return Event.GetOperationAs<FAssetDragDropOp>().IsValid() ? FReply::Handled() : FReply::Unhandled();
+    }
+    FReply OnDrop(const FGeometry&, const FDragDropEvent& Event) override
+    {
+        auto Drag = Event.GetOperationAs<FAssetDragDropOp>();
+        if (!Drag) return FReply::Unhandled();
+        for (const auto& Asset : Drag->GetAssets())
+        {
+            auto R = MakeShared<FJsonObject>();
+            R->SetStringField(TEXT("path"), Asset.GetSoftObjectPath().ToString());
+            R->SetStringField(TEXT("name"), Asset.AssetName.ToString());
+            R->SetStringField(TEXT("class"), Asset.AssetClassPath.ToString());
+            Send(TEXT("assetReference"), CyUEJson::Stringify(R));
+        }
+        return FReply::Handled();
+    }
+    void CaptureViewport()
+    {
+        FViewport* Viewport = GEditor ? GEditor->GetActiveViewport() : nullptr;
+        if (!Viewport && GCurrentLevelEditingViewportClient) Viewport = GCurrentLevelEditingViewportClient->Viewport;
+        TArray<FColor> Pixels;
+        const FIntPoint Size = Viewport ? Viewport->GetSizeXY() : FIntPoint::ZeroValue;
+        if (!Viewport || Size.X <= 0 || Size.Y <= 0 || int64(Size.X) * Size.Y > 20000000 || !Viewport->ReadPixels(Pixels))
+        { Send(TEXT("error"), TEXT("No readable editor viewport. Open a viewport, then retry.")); return; }
+        for (auto& Pixel : Pixels) Pixel.A = 255;
+        TArray64<uint8> PNG;
+        FImageUtils::PNGCompressImageArray(Size.X, Size.Y, Pixels, PNG);
+        if (PNG.Num() > 32 * 1024 * 1024)
+        { Send(TEXT("error"), TEXT("Viewport image exceeds the 32 MiB attachment limit.")); return; }
+        IFileManager::Get().MakeDirectory(*UploadRoot, true);
+        FString Name = TEXT("Viewport-") + FDateTime::Now().ToString(TEXT("%Y%m%d-%H%M%S")) + TEXT(".png");
+        FString Path = UploadRoot / (FGuid::NewGuid().ToString(EGuidFormats::Digits) + TEXT("-") + Name);
+        if (!FFileHelper::SaveArrayToFile(PNG, *Path))
+        { Send(TEXT("error"), TEXT("Cannot stage viewport screenshot.")); return; }
+        Uploads.Add(Path);
+        auto R = MakeShared<FJsonObject>();
+        R->SetStringField(TEXT("name"), Name); R->SetStringField(TEXT("path"), Path);
+        R->SetStringField(TEXT("data"), FBase64::Encode(PNG.GetData(), int32(PNG.Num())));
+        Send(TEXT("nativeAttachment"), CyUEJson::Stringify(R));
+    }
+    void NotifyContext()
+    {
+        const auto C = ResolveHostContext ? ResolveHostContext() : HostContext;
+        auto O = MakeShared<FJsonObject>();
+        O->SetStringField(TEXT("id"), C.Id); O->SetStringField(TEXT("label"), C.Label);
+        O->SetStringField(TEXT("plugin"), C.Plugin); O->SetStringField(TEXT("asset"), C.Asset); O->SetStringField(TEXT("file"), C.File);
+        Send(TEXT("context"), CyUEJson::Stringify(O));
+    }
     void Action(const FString &Data)
     {
         auto O = CyUEJson::Parse(Data);
@@ -252,6 +316,7 @@ class SCyPanel : public SCompoundWidget
             return V;
         };
 #if WITH_DEV_AUTOMATION_TESTS
+        if (A == TEXT("testDraft")) { SmokeDraft = Get(TEXT("text")); return; }
         if (A == TEXT("testRendered"))
         {
             bSmokeChatRendered = Get(TEXT("text")).Contains(TEXT("CYUE_NATIVE_CHAT_OK"));
@@ -261,6 +326,7 @@ class SCyPanel : public SCompoundWidget
         if (A == TEXT("ready"))
         {
             bPageReady = true;
+            NotifyContext();
             auto Config = MakeShared<FJsonObject>();
             for (auto Key : {TEXT("Python"), TEXT("Script"), TEXT("server"), TEXT("gguf"), TEXT("connector"),
                              TEXT("model"), TEXT("port"), TEXT("gpu"), TEXT("executable"), TEXT("transport")})
@@ -325,6 +391,8 @@ class SCyPanel : public SCompoundWidget
             P->SetStringField(TEXT("transport"), Get(TEXT("transport")));
             Submit(TEXT("assistant_open"), P);
         }
+        else if (A == TEXT("captureViewport"))
+            CaptureViewport();
         else if (A == TEXT("send"))
         {
             if (PendingSend || (!Job.IsEmpty() && ActiveOperation != TEXT("assistant_probe")))
@@ -338,6 +406,17 @@ class SCyPanel : public SCompoundWidget
             const TArray<TSharedPtr<FJsonValue>> *Files;
             if (O->TryGetArrayField(TEXT("files"), Files))
                 P->SetArrayField(TEXT("files"), *Files);
+            const TArray<TSharedPtr<FJsonValue>>* References = nullptr;
+            if (O->TryGetArrayField(TEXT("references"), References)) P->SetArrayField(TEXT("references"), *References);
+            NotifyContext();
+            const auto Context = ResolveHostContext ? ResolveHostContext() : HostContext;
+            auto C = MakeShared<FJsonObject>();
+            C->SetStringField(TEXT("id"), Context.Id);
+            C->SetStringField(TEXT("label"), Context.Label);
+            C->SetStringField(TEXT("plugin"), Context.Plugin);
+            C->SetStringField(TEXT("asset"), Context.Asset);
+            C->SetStringField(TEXT("file"), Context.File);
+            P->SetObjectField(TEXT("context"), C);
             PendingSend = P;
             NativeStatus = TEXT("Connecting assistant...");
             if (Session.IsEmpty())
@@ -771,6 +850,7 @@ class SCyPanel : public SCompoundWidget
                         const TSharedPtr<FJsonObject> *NativeSession = nullptr;
                         if ((*Result)->TryGetObjectField(TEXT("session"), NativeSession))
                             (*NativeSession)->TryGetStringField(TEXT("model"), ActualModel);
+                        (*Result)->TryGetStringField(TEXT("access"), ActualAccess);
                         NotifyProfile();
                     }
                     Send(TEXT("job"), CyUEJson::Stringify(J));
@@ -796,8 +876,11 @@ class SCyPanel : public SCompoundWidget
 };
 #include "CyChatWorkspace.inl"
 // One public Assistant tab. Settings pages are children, not editor-wide dock tabs.
-class FCyUEAssistantModule : public IModuleInterface
+class SCyAssistantView : public SCompoundWidget
 {
+    FCyAssistantContext Context;
+    TFunction<FCyAssistantContext()> ResolveContext;
+    bool bOwnBridge = false;
     TSharedPtr<SCyPanel> Panel;
     TSharedPtr<SCyChatWorkspace> Workspace;
     TSharedPtr<SWidgetSwitcher> MainPages, SettingsPages;
@@ -806,13 +889,15 @@ class FCyUEAssistantModule : public IModuleInterface
     {
         if (!Root)
         {
-            Panel = SNew(SCyPanel);
+            Panel = SNew(SCyPanel).OwnBridge(bOwnBridge);
             Workspace = SNew(SCyChatWorkspace);
             auto OpenSettings = [this](FName Name) {
                 MainPages->SetActiveWidgetIndex(1);
                 SettingsPages->SetActiveWidgetIndex(Name == TEXT("CyUELogs") ? 1 : 0);
             };
             Panel->OpenNativeTab = OpenSettings;
+            Workspace->Context = Context;
+            Workspace->ResolveContext = ResolveContext;
             Workspace->Initialize(OpenSettings);
             TWeakPtr<SCyPanel> Weak = Panel;
             Workspace->LogSink = [Weak](const FString &Message) {
@@ -827,7 +912,7 @@ class FCyUEAssistantModule : public IModuleInterface
                 int Page = Index++;
                 Tabs->AddSlot().AutoWidth()[SNew(SCyChromeTab)
                                                 .Label(FText::FromString(Label))
-                                                .Width(165)
+                                                .Width(140)
                                                 .Active_Lambda([this, Page] {
                                                     return SettingsPages &&
                                                            SettingsPages->GetActiveWidgetIndex() == Page;
@@ -836,42 +921,68 @@ class FCyUEAssistantModule : public IModuleInterface
                                                     SettingsPages->SetActiveWidgetIndex(Page);
                                                 }))];
             }
-            Settings->AddSlot().AutoHeight()[Tabs];
+
             Settings->AddSlot().FillHeight(1)[SAssignNew(SettingsPages, SWidgetSwitcher) +
                                               SWidgetSwitcher::Slot()[Panel->ConnectionsWidget()] +
                                               SWidgetSwitcher::Slot()[Panel->LogsWidget()]];
-            Root =
-                SNew(SVerticalBox) +
-                SVerticalBox::Slot().AutoHeight()
-                    [SNew(SHorizontalBox) +
-                     SHorizontalBox::Slot().AutoWidth()[SNew(SCyChromeTab)
-                                                            .Label(LOCTEXT("ChatPage", "Chat"))
-                                                            .Width(125)
-                                                            .Active_Lambda([this] {
-                                                                return MainPages &&
-                                                                       MainPages->GetActiveWidgetIndex() == 0;
-                                                            })
-                                                            .OnSelected(FSimpleDelegate::CreateLambda([this] {
-                                                                MainPages->SetActiveWidgetIndex(0);
-                                                            }))] +
-                     SHorizontalBox::Slot().AutoWidth()[SNew(SCyChromeTab)
-                                                            .Label(LOCTEXT("SettingsPage", "Settings"))
-                                                            .Width(125)
-                                                            .Active_Lambda([this] {
-                                                                return MainPages &&
-                                                                       MainPages->GetActiveWidgetIndex() == 1;
-                                                            })
-                                                            .OnSelected(FSimpleDelegate::CreateLambda([this] {
-                                                                MainPages->SetActiveWidgetIndex(1);
-                                                            }))]] +
-                SVerticalBox::Slot().FillHeight(
-                    1)[SAssignNew(MainPages, SWidgetSwitcher) +
-                       SWidgetSwitcher::Slot()[Workspace.ToSharedRef()] + SWidgetSwitcher::Slot()[Settings]];
+            auto Back = SNew(SBox).WidthOverride(28).HeightOverride(28)
+                [SNew(SButton)
+                    .ButtonStyle(&FCyTabAppearance::Get().Icon)
+                    .ToolTipText(LOCTEXT("BackToChat", "Back to conversation"))
+                    .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                    .OnClicked_Lambda([this] {
+                        MainPages->SetActiveWidgetIndex(0);
+                        return FReply::Handled();
+                    })[SNew(SImage).Image(FAppStyle::GetBrush("Icons.ArrowLeft"))]];
+            Root = SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(4, 2, 4, 0)
+                [SNew(SHorizontalBox)
+                    + SHorizontalBox::Slot().FillWidth(1)
+                    [SNew(SWidgetSwitcher)
+                        .WidgetIndex_Lambda([this] { return MainPages ? MainPages->GetActiveWidgetIndex() : 0; })
+                        + SWidgetSwitcher::Slot()[Workspace->TabBar()]
+                        + SWidgetSwitcher::Slot()
+                        [SNew(SHorizontalBox)
+                            + SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 4, 0)[Back]
+                            + SHorizontalBox::Slot().FillWidth(1)[Tabs]]]
+                    + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(4, 0, 0, 0)
+                    [SNew(SBox).WidthOverride(28).HeightOverride(28)
+                        [SNew(SButton)
+                            .ButtonStyle(&FCyTabAppearance::Get().Icon)
+                            .ToolTipText(LOCTEXT("SettingsPage", "Settings"))
+                            .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                            .OnClicked_Lambda([this] {
+                                MainPages->SetActiveWidgetIndex(MainPages->GetActiveWidgetIndex() == 0 ? 1 : 0);
+                                return FReply::Handled();
+                            })[SNew(SImage).Image(FAppStyle::GetBrush("Icons.Settings"))
+                                .ColorAndOpacity_Lambda([this] {
+                                    return MainPages && MainPages->GetActiveWidgetIndex() == 1
+                                        ? FSlateColor(FLinearColor(.35f, .65f, 1.f)) : FSlateColor::UseForeground();
+                                })]]]]
+                + SVerticalBox::Slot().FillHeight(1)
+                [SAssignNew(MainPages, SWidgetSwitcher).WidgetIndex(0)
+                    + SWidgetSwitcher::Slot()[Workspace.ToSharedRef()]
+                    + SWidgetSwitcher::Slot()[Settings]]
+                + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(6, 1, 8, 3)
+                [SNew(STextBlock)
+                    .Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+                    .ColorAndOpacity(FLinearColor(.38f, .4f, .43f))
+                    .Text(FText::FromString(TEXT("Assistant ") + IPluginManager::Get().FindPlugin(TEXT("CyUEMCPSDK"))->GetDescriptor().VersionName))];
         }
         return Root.ToSharedRef();
     }
 
   public:
+    SLATE_BEGIN_ARGS(SCyAssistantView) : _OwnBridge(false) {}
+        SLATE_ARGUMENT(bool, OwnBridge)
+        SLATE_ARGUMENT(FCyAssistantContext, Context)
+        SLATE_ARGUMENT(TFunction<FCyAssistantContext()>, ResolveContext)
+    SLATE_END_ARGS()
+    void Construct(const FArguments& Args)
+    {
+        bOwnBridge = Args._OwnBridge; Context = Args._Context; ResolveContext = Args._ResolveContext;
+        ChildSlot[GetAssistant()];
+    }
 #if WITH_DEV_AUTOMATION_TESTS
     TSharedRef<SWidget> SmokeRoot()
     {
@@ -903,41 +1014,72 @@ class FCyUEAssistantModule : public IModuleInterface
     }
 
 #endif
+};
+class FCyUEAssistantModule : public ICyUEAssistantModule
+{
+    bool bGlobalMenuEnabled = false;
+    TSharedPtr<SCyAssistantView> Default;
+    TArray<TWeakPtr<SWindow>> Windows;
+    TSharedRef<SCyAssistantView> DefaultView()
+    {
+        if (!Default)
+        {
+            FCyAssistantContext C; C.Id = TEXT("project"); C.Label = FApp::GetProjectName();
+            Default = SNew(SCyAssistantView).OwnBridge(true).Context(C);
+        }
+        return Default.ToSharedRef();
+    }
+public:
+    TSharedRef<SWidget> CreateAssistant(const FCyAssistantContext& Context, TFunction<FCyAssistantContext()> Resolver = {}) override
+    {
+        DefaultView(); // Own one companion for all assistant views in this editor.
+        return SNew(SCyAssistantView).Context(Context).ResolveContext(Resolver);
+    }
+    void OpenAssistant(const FCyAssistantContext& Context, TFunction<FCyAssistantContext()> Resolver = {}) override
+    {
+        auto Window = SNew(SWindow).Title(FText::FromString(Context.Label.IsEmpty() ? TEXT("Assistant") : TEXT("Assistant - ") + Context.Label))
+            .ClientSize(FVector2D(920, 680))[CreateAssistant(Context, Resolver)];
+        Windows.Add(Window);
+        FSlateApplication::Get().AddWindow(Window);
+    }
     void StartupModule() override
     {
-        FGlobalTabmanager::Get()
-            ->RegisterNomadTabSpawner(TEXT("CyUEMCP"),
-                                      FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs &) {
-                                          return SNew(SDockTab).TabRole(ETabRole::NomadTab)[GetAssistant()];
-                                      }))
-            .SetDisplayName(LOCTEXT("Tab", "Assistant"));
-        UToolMenus::RegisterStartupCallback(
-            FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FCyUEAssistantModule::Menu));
+        GConfig->GetBool(TEXT("CyUEMCPSDK.Assistant"), TEXT("EnableGlobalMenu"), bGlobalMenuEnabled, GEditorPerProjectIni);
+        if (!bGlobalMenuEnabled) return;
+        FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("CyUEMCP"), FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&) {
+            return SNew(SDockTab).TabRole(ETabRole::NomadTab)[DefaultView()];
+        })).SetDisplayName(LOCTEXT("Tab", "Assistant"));
+        UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FCyUEAssistantModule::Menu));
     }
     void Menu()
     {
         FToolMenuOwnerScoped Owner(this);
-        UToolMenus::Get()
-            ->ExtendMenu(TEXT("LevelEditor.MainMenu.Window"))
-            ->FindOrAddSection(TEXT("CyTools"))
-            .AddMenuEntry(TEXT("CyUEMCP"), LOCTEXT("Entry", "Assistant"),
-                          LOCTEXT("Tip", "Assistant conversations and settings"), FSlateIcon(),
-                          FUIAction(FExecuteAction::CreateLambda(
-                              [] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("CyUEMCP"))); })));
+        auto& Section = UToolMenus::Get()->ExtendMenu(TEXT("LevelEditor.MainMenu.Window"))->FindOrAddSection(TEXT("CyTools"));
+        Section.AddMenuEntry(TEXT("CyUEMCP"), LOCTEXT("Entry", "Assistant"), LOCTEXT("Tip", "Assistant conversations and settings"), FSlateIcon(),
+            FUIAction(FExecuteAction::CreateLambda([] { FGlobalTabmanager::Get()->TryInvokeTab(FName(TEXT("CyUEMCP"))); })));
+        Section.AddMenuEntry(TEXT("CyUEMCPNew"), LOCTEXT("NewWindow", "New assistant window"), LOCTEXT("NewWindowTip", "Open an independent assistant context"), FSlateIcon(),
+            FUIAction(FExecuteAction::CreateLambda([this] {
+                FCyAssistantContext C; C.Id = FGuid::NewGuid().ToString(); C.Label = FApp::GetProjectName(); OpenAssistant(C);
+            })));
     }
     void ShutdownModule() override
     {
-        UToolMenus::UnRegisterStartupCallback(this);
-        UToolMenus::UnregisterOwner(this);
-        if (auto Tab = FGlobalTabmanager::Get()->FindExistingLiveTab(FName(TEXT("CyUEMCP"))))
-            Tab->RequestCloseTab();
-        FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("CyUEMCP"));
-        Root.Reset();
-        MainPages.Reset();
-        SettingsPages.Reset();
-        Workspace.Reset();
-        Panel.Reset();
+        UToolMenus::UnRegisterStartupCallback(this); UToolMenus::UnregisterOwner(this);
+        for (auto Weak : Windows) if (auto W = Weak.Pin()) W->RequestDestroyWindow();
+        Windows.Empty();
+        if (bGlobalMenuEnabled)
+        {
+            if (auto Tab = FGlobalTabmanager::Get()->FindExistingLiveTab(FName(TEXT("CyUEMCP")))) Tab->RequestCloseTab();
+            FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("CyUEMCP"));
+        }
+        Default.Reset();
     }
+#if WITH_DEV_AUTOMATION_TESTS
+    TSharedRef<SWidget> SmokeRoot() { return DefaultView(); }
+    TSharedPtr<SCyPanel> SmokeChat() { return DefaultView()->SmokeChat(); }
+    int32 SmokeProfiles() { return DefaultView()->SmokeProfiles(); }
+    void SmokePage(int32 Page) { DefaultView()->SmokePage(Page); }
+#endif
 };
 IMPLEMENT_MODULE(FCyUEAssistantModule, CyUEAssistant)
 #undef LOCTEXT_NAMESPACE
@@ -1209,6 +1351,7 @@ bool FCyWaitForUnified::Update()
     }
     else
     {
+        CyCaptureWindow(CyUnifiedWindow, TEXT("cy-assistant-returned-chat.png"));
         Test->TestTrue(TEXT("Settings retains the original conversation"), M.SmokeChat() == Chat);
         CyUnifiedWindow->RequestDestroyWindow();
         CyUnifiedWindow.Reset();
@@ -1231,6 +1374,74 @@ bool FCyAssistantUnifiedTest::RunTest(const FString &)
     CyUnifiedNext = 0;
     CyUnifiedDeadline = FPlatformTime::Seconds() + 60;
     ADD_LATENT_AUTOMATION_COMMAND(FCyWaitForUnified(this));
+    return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+static TSharedPtr<SCyAssistantView> CyContextA, CyContextB;
+static TSharedPtr<SWindow> CyContextWindowA, CyContextWindowB;
+static int32 CyContextPhase;
+static double CyContextDeadline, CyContextNext;
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCyWaitForContext, FAutomationTestBase*, Test);
+bool FCyWaitForContext::Update()
+{
+    auto A = CyContextA->SmokeChat(), B = CyContextB->SmokeChat();
+    bool Done = false;
+    if (FPlatformTime::Seconds() > CyContextDeadline)
+    { Test->AddError(TEXT("Context attachment UI timeout")); Done = true; }
+    else if (!A->bPageReady || !B->bPageReady || !A->SmokeConnected() || !B->SmokeConnected() || FPlatformTime::Seconds() < CyContextNext) return false;
+    else if (CyContextPhase == 0)
+    {
+        Test->TestNotEqual(TEXT("Separate tasks per host"), A->SmokeSession(), B->SmokeSession());
+        Test->TestEqual(TEXT("First host context"), A->HostContext.Id, FString(TEXT("plugin-a:asset-a")));
+        Test->TestEqual(TEXT("Second host context"), B->HostContext.Id, FString(TEXT("plugin-b:asset-b")));
+        UObject* Cube = LoadObject<UObject>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+        Test->TestNotNull(TEXT("Engine asset fixture"), Cube);
+        if (Cube)
+        {
+            FDragDropEvent Drop(FPointerEvent(), FAssetDragDropOp::New(FAssetData(Cube)));
+            Test->TestTrue(TEXT("Native asset drop handled"), A->OnDrop(FGeometry(), Drop).IsEventHandled());
+        }
+        A->CaptureViewport();
+        Test->TestEqual(TEXT("Screenshot staged, no asset copied"), A->SmokeUploadCount(), 1);
+        Test->TestEqual(TEXT("Second view has no uploads"), B->SmokeUploadCount(), 0);
+        ++CyContextPhase; CyContextNext = FPlatformTime::Seconds() + 1.;
+    }
+    else if (CyContextPhase == 1)
+    { A->SmokeQueryDraft(); B->SmokeQueryDraft(); ++CyContextPhase; CyContextNext = FPlatformTime::Seconds() + .7; }
+    else
+    {
+        Test->TestTrue(TEXT("Asset reference chip rendered"), A->SmokeDraft.Contains(TEXT("Cube")) && A->SmokeDraft.Contains(TEXT("Asset reference")));
+        Test->TestTrue(TEXT("Viewport chip rendered"), A->SmokeDraft.Contains(TEXT("Viewport-")));
+        Test->TestTrue(TEXT("Second view draft isolated"), B->SmokeDraft.IsEmpty());
+        CyCaptureWindow(CyContextWindowA, TEXT("cy-assistant-context-attachments.png"));
+        CyContextWindowA->RequestDestroyWindow(); CyContextWindowA.Reset(); CyContextA.Reset();
+        Test->TestTrue(TEXT("Second task remains connected"), B->SmokeConnected());
+        Done = true;
+    }
+    if (Done)
+    {
+        if (CyContextWindowA) CyContextWindowA->RequestDestroyWindow();
+        if (CyContextWindowB) CyContextWindowB->RequestDestroyWindow();
+        CyContextWindowA.Reset(); CyContextWindowB.Reset(); CyContextA.Reset(); CyContextB.Reset();
+    }
+    return Done;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCyAssistantContextTest, "CyUEMCP.Assistant.ContextAttachments", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCyAssistantContextTest::RunTest(const FString&)
+{
+    auto& M = ICyUEAssistantModule::Get();
+    FCyAssistantContext A; A.Id = TEXT("plugin-a:asset-a"); A.Label = TEXT("Plugin A / Cube"); A.Asset = TEXT("/Engine/BasicShapes/Cube.Cube");
+    FCyAssistantContext B; B.Id = TEXT("plugin-b:asset-b"); B.Label = TEXT("Plugin B / Material");
+    CyContextA = StaticCastSharedRef<SCyAssistantView>(M.CreateAssistant(A));
+    CyContextB = StaticCastSharedRef<SCyAssistantView>(M.CreateAssistant(B));
+    CyContextWindowA = SNew(SWindow).Title(FText::FromString(A.Label)).ClientSize(FVector2D(920,680))[CyContextA.ToSharedRef()];
+    CyContextWindowB = SNew(SWindow).Title(FText::FromString(B.Label)).ClientSize(FVector2D(640,500))[CyContextB.ToSharedRef()];
+    FSlateApplication::Get().AddWindow(CyContextWindowB.ToSharedRef());
+    FSlateApplication::Get().AddWindow(CyContextWindowA.ToSharedRef());
+    CyContextPhase = 0; CyContextNext = 0; CyContextDeadline = FPlatformTime::Seconds()+90;
+    ADD_LATENT_AUTOMATION_COMMAND(FCyWaitForContext(this));
     return true;
 }
 #endif

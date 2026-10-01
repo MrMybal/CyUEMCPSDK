@@ -13,8 +13,10 @@ Read Docs/ProjectIntegration.md before integrating an existing project. Reuse it
 
 Read Docs/AssistantUI.md: compact conversation only in CEF; native Settings pages inside a single Assistant window, multiple persistent profiles, real startup probes and retests, first-send auto-open. No user-facing Tools page. Preserve a tested native chat round trip.
 
-Read the 0.1.4 conversation UX contract in Docs/AssistantUI.md. Ship connector JSON presets, keep English as the default, distinguish profiles from independent chat tabs, show the real transport/model, and enforce snapshotted permissions. One companion per editor; a separate SDK task and provider session per conversation. No permanent Copy message buttons.
+Read the 0.1.4 conversation UX contract in Docs/AssistantUI.md. Ship connector JSON presets, keep English as the default, distinguish profiles from independent chat tabs, show the real transport/model, and enforce effective permissions acknowledged by the companion between turns. One companion per editor; a separate SDK task and provider session per conversation. No permanent Copy message buttons.
 
-Read Docs/Providers.md. Local models belong under Providers. Use Chrome-style native tabs and register only Assistant in the editor Window menu; do not reintroduce separate settings/local/log windows.
+Read Docs/Providers.md. Local models belong under Providers. Use Chrome-style native tabs and register no global Assistant menu or generic tab spawner by default; the owning plugin/toolkit provides entry points; do not reintroduce separate settings/local/log windows.
 
 Target Fab plugin migrations embed the assistant/MCP/providers in the target existing plugin/modules, not separate CyUEMCPSDK/CyUEMCP dependencies. Read Docs/UpdateExistingPlugin.md section 3; separate reference plugins are development examples only.
+
+Read Docs/AssistantContexts.md for per-host chat instances, contextual metadata, asset reference drops and temporary viewport screenshots. Keep a small actual-version footer. Validate new UI on UE 5.3 before broad migration.

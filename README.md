@@ -1,4 +1,4 @@
-# CyUEMCPSDK 0.1.5
+# CyUEMCPSDK 0.1.6
 
 Unreal SDK modules using **CyToolsCore 0.9.0** contracts and **integrated provider transports**
 with no CyAIConnectorLab dependency. Separate minimal host plugin: **CyUEMCP**.
@@ -24,7 +24,9 @@ Clone CyToolsCore alongside this repository, then create the optional companion 
 ```
 
 The installer refuses to overwrite existing plugin folders. Enable **CyUEMCP** in
-Unreal's Plugins window, restart, then open **Window > Assistant**.
+Unreal's Plugins window and restart. Open the assistant through the host integration
+API described in [AssistantContexts](Docs/AssistantContexts.md). Global Window menu
+entries are disabled by default; that guide documents an optional developer example menu.
 
 The assistant connects its local bridge automatically. If paths cannot be discovered,
 open **Settings > Providers > Advanced** and browse to:
@@ -41,7 +43,8 @@ controls project editing; **Advanced** contains executable/transport/bridge over
 
 Select a profile in a new chat and send directly. The actual connector and model stay
 visible. Use the conversation tab strip's **+** for independent conversations;
-switching or closing one does not cancel another. Settings apply to new conversations.
+switching or closing one does not cancel another. Model and connector changes apply to new conversations; saved permissions also apply
+to existing chats after the current turn.
 Errors appear in chat and native status/logs. No permanent Copy message buttons.
 
 **Settings > Connection logs** provides selectable logs, Copy all and export.
@@ -91,3 +94,5 @@ the Python runtime, provider transports, MCP implementation or schemas.
 binaries; `Bridge/` contains the companion; `Runtime/` is the private Python environment;
 `Reports/` contains local test evidence. User tokens and running-editor metadata stay
 in the user's LocalAppData, outside project source control.
+
+Contextual instances, asset reference drops and viewport screenshots: [AssistantContexts](Docs/AssistantContexts.md). Version 0.1.6 UI is currently validated on UE 5.3 only.

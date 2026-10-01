@@ -15,6 +15,7 @@ from cyue_mcp.providers.core import ConnectorError, descriptors
 
 class Conversation:
     def __init__(self, owner, connector, config, sink, factory):
+        self.connector = connector
         self.owner = owner
         self.id = str(uuid4())
         self.lock = Lock()
@@ -75,6 +76,22 @@ class Conversation:
             stop.set()
             if monitor: monitor.join()
             self.transport.sink = previous_sink
+            self.lock.release()
+
+    def set_access(self, access):
+        if access not in {'read-only', 'workspace-write'}:
+            raise ConnectorError('InvalidInput', 'Unknown access policy')
+        if self.connector not in {'codex', 'claude-code'}:
+            raise ConnectorError('Unsupported', 'This connector has no adjustable file editing policy')
+        if not self.lock.acquire(blocking=False):
+            raise ConnectorError('SessionBusy', 'Wait for the current turn before changing permissions')
+        try:
+            if self.closed:
+                raise ConnectorError('SessionInvalid', 'Conversation closed')
+            # These adapters build their enforced policy for each turn, preserving native history.
+            self.transport.config['access'] = access
+            return self.snapshot()
+        finally:
             self.lock.release()
 
     def close(self):
@@ -190,6 +207,9 @@ class ConnectorService:
 
     def send(self, owner, conversation_id, text, **kwargs):
         return self._owned(owner, conversation_id).send(text, **kwargs)
+
+    def set_access(self, owner, conversation_id, access):
+        return self._owned(owner, conversation_id).set_access(access)
 
     def snapshot(self, owner, conversation_id):
         return self._owned(owner, conversation_id).snapshot()
