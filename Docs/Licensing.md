@@ -34,9 +34,21 @@ root, beside Source, Resources and the .uplugin file:
   Licenses.txt when the assistant runtime is included. Preserve the full Python and
   third-party license files inside the archive as well.
 
+Also include LICENCES/SOURCES.txt from the reference plugin: it links to both
+GitHub repositories and their integration/creation instructions. Keep these links
+when renaming the embedded integration.
+
 These are component notices. Do not replace or relicense the target plugin's own
 LICENSE, remove third-party attributions, or require the plugin itself to use MIT.
 Include LICENCES in source/binary/Fab packages: adapt existing packaging rules,
 RuntimeDependencies as NonUFS where needed, and Config/FilterPlugin.ini for
 BuildPlugin. Inspect the actual delivered archive; a source-only folder is insufficient.
 Follow the reference Build.ps1/Install.ps1 copies and FilterPlugin.ini rules.
+
+## Source repositories
+
+- CyToolsCore: https://github.com/MrMybal/CyToolsCore
+- CyUEMCPSDK: https://github.com/MrMybal/CyUEMCPSDK
+
+The repositories provide the source code and integration instructions. Preserve the
+full license texts delivered with each component; repository links do not replace them.

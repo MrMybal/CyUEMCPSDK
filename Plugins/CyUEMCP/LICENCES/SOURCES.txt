@@ -1,0 +1,15 @@
+SDK source repositories
+
+CyUEMCPSDK
+Repository: https://github.com/MrMybal/CyUEMCPSDK
+License: MIT; see CyUEMCPSDK-MIT.txt
+Integration instructions: https://github.com/MrMybal/CyUEMCPSDK/blob/main/Docs/Integration.md
+Licensing instructions: https://github.com/MrMybal/CyUEMCPSDK/blob/main/Docs/Licensing.md
+
+CyToolsCore
+Repository: https://github.com/MrMybal/CyToolsCore
+License: MIT; see CyToolsCore-MIT.txt when this component is included
+Tool creation instructions: https://github.com/MrMybal/CyToolsCore/blob/main/Docs/AgentPrompt.md
+
+Repository links do not replace the full license and copyright notices.
+Third-party components retain their own licenses and source references.
