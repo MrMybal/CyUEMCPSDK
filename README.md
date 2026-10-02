@@ -1,6 +1,6 @@
-# CyUEMCPSDK 0.1.7
+# CyUEMCPSDK 0.1.8
 
-Unreal SDK modules using **CyToolsCore 0.10.0** contracts and **integrated provider transports**
+Unreal SDK modules using **CyToolsCore 0.10.1** contracts and **integrated provider transports**
 with no CyAIConnectorLab dependency. Separate minimal host plugin: **CyUEMCP**.
 
 - `CyUEMCPCore`: operation registry and common C++ contract.
@@ -100,3 +100,10 @@ binaries; `Bridge/` contains the companion; `Runtime/` is the private Python env
 in the user's LocalAppData, outside project source control.
 
 Contextual instances, asset reference drops and viewport screenshots: [AssistantContexts](Docs/AssistantContexts.md). Version 0.1.6 UI is currently validated on UE 5.3 only.
+
+## License
+
+Copyright (c) 2026 Cyberalien. CyUEMCPSDK is licensed under [MIT](LICENSE).
+Commercial embedding is permitted with SDK license/copyright notices retained;
+your own plugin code need not use MIT. Third-party components retain their licenses.
+See [Licensing](Docs/Licensing.md) for distributions and the offline runtime.
