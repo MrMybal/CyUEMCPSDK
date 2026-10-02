@@ -107,3 +107,6 @@ Copyright (c) 2026 Cyberalien. CyUEMCPSDK is licensed under [MIT](LICENSE).
 Commercial embedding is permitted with SDK license/copyright notices retained;
 your own plugin code need not use MIT. Third-party components retain their licenses.
 See [Licensing](Docs/Licensing.md) for distributions and the offline runtime.
+
+Existing plugins/software: follow [UpdateExistingProducts](Docs/UpdateExistingProducts.md)
+for the coordinated Core/Unreal MIT migration and delivery checks.

@@ -94,3 +94,5 @@ Read [Licensing.md](Licensing.md). Every integration must ship the complete SDK 
 notice at <Plugin>/LICENCES/CyUEMCPSDK-MIT.txt. Include Core/runtime component notices
 when bundled, preserve the target plugin's own license, and verify LICENCES is present
 in the delivered source/binary/Fab package, not only the checkout.
+
+For the coordinated SDK/version/license update, begin with [UpdateExistingProducts.md](UpdateExistingProducts.md).

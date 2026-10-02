@@ -4,6 +4,7 @@ CyUEMCPSDK
 Repository: https://github.com/MrMybal/CyUEMCPSDK
 License: MIT; see CyUEMCPSDK-MIT.txt
 Integration instructions: https://github.com/MrMybal/CyUEMCPSDK/blob/main/Docs/Integration.md
+Migration instructions: https://github.com/MrMybal/CyToolsCore/blob/main/Docs/UpdateExistingProducts.md
 Licensing instructions: https://github.com/MrMybal/CyUEMCPSDK/blob/main/Docs/Licensing.md
 
 CyToolsCore

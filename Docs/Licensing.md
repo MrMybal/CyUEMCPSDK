@@ -52,3 +52,6 @@ Follow the reference Build.ps1/Install.ps1 copies and FilterPlugin.ini rules.
 
 The repositories provide the source code and integration instructions. Preserve the
 full license texts delivered with each component; repository links do not replace them.
+
+Existing products must follow [UpdateExistingProducts.md](UpdateExistingProducts.md)
+for the SDK/package migration and distribution notices.
