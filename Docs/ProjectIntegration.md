@@ -235,3 +235,17 @@ installation. Les commandes d'installation ne sont pas exécutées par ce docume
 - [llama.cpp — versions publiées du moteur](https://github.com/ggml-org/llama.cpp/releases).
 - Pour chaque modèle local, enregistrer dans le catalogue sa propre page officielle
   et sa licence ; ne pas substituer une page générique au modèle effectivement proposé.
+
+
+## Offline assistant setup (0.1.7)
+
+Read [AssistantRuntime.md](AssistantRuntime.md). Ship the compressed offline archive
+with portable Python, the official Core package and companion dependencies. At first
+assistant opening, check compatible installations without extracting anything; propose
+installation only if missing/damaged and wait for the explicit Install action.
+Shared user storage is the default; plugin-local storage is optional. Preserve Later,
+cancellation, progress, license notices and Settings > Runtime. Share immutable code
+by exact archive hash, never profiles, tokens, conversations or task files. Adapt the
+bootstrap to the target plugin's existing Editor module and private settings/service
+names. No developer venv, loose Python tree, SDK checkout path or external SDK plugin
+is an end-user prerequisite. Test isolated plugins and simultaneous shared installs.

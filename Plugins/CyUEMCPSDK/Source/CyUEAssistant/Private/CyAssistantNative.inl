@@ -601,10 +601,11 @@ TSharedRef<SWidget> ConnectionsWidget()
     Advanced->AddSlot().AutoHeight().Padding(
         0, 8)[NativeButton(TEXT("Save advanced settings"), [this] { SaveEditedProfile(false); })];
     Advanced->AddSlot().AutoHeight().Padding(
-        0, 20, 0, 0)[SNew(STextBlock).Text(FText::FromString(TEXT("Shared local bridge")))];
+        0, 20, 0, 0)[SNew(STextBlock).Text(FText::FromString(TEXT("Custom bridge override (optional)")))];
     AddField(Advanced, TEXT("Python executable"), Python, Python->GetText().ToString(), true);
     AddField(Advanced, TEXT("Bridge script"), Script, Script->GetText().ToString(), true);
     Advanced->AddSlot().AutoHeight().Padding(0, 8)[NativeButton(TEXT("Save bridge / connect"), [this] {
+        GConfig->SetBool(TEXT("CyUEMCP"), TEXT("UseCustomRuntime"), true, GEditorPerProjectIni);
         GConfig->SetString(TEXT("CyUEMCP"), TEXT("Python"), *Python->GetText().ToString(),
                            GEditorPerProjectIni);
         GConfig->SetString(TEXT("CyUEMCP"), TEXT("Script"), *Script->GetText().ToString(),

@@ -1,3 +1,4 @@
+# Development environment only. End users use the bundled SetupRuntime.ps1 through the assistant UI.
 param([string]$CoreRoot = (Join-Path (Split-Path $PSScriptRoot -Parent) '../CyToolsCore'),[string]$Python = 'python')
 $ErrorActionPreference='Stop'
 $Root=Split-Path $PSScriptRoot -Parent

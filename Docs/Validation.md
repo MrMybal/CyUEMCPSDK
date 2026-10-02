@@ -33,3 +33,24 @@ included in source distributions.
   drag-operation handling, a real viewport PNG, isolated drafts, settings navigation
   and preservation of the other view on closure. The version footer is visible.
 - New native features were not compiled or executed on UE 5.4–5.8 yet.
+
+## 0.1.7 — offline assistant runtime, UE 5.3
+
+- 28 existing Python provider/native-contract tests passed. The 10 Windows bootstrap
+  tests cover check-without-extraction, exact portable Python/dependencies, reuse from
+  another plugin copy, real plugin-local installation, concurrent installation,
+  cancellation before/during extraction, checksum/path rejection and repair without
+  replacing an existing installation.
+- UE 5.3 Win64 Editor compilation passed. Native OfflineRuntimeSetup automation passed
+  with no warnings/errors: missing-runtime check, Shared default, explicit install,
+  verification/reuse, browser initialization and a real SDK session using the packaged
+  companion. Test storage is isolated under the example project's Saved directory;
+  no production shared installation was created by this automation.
+- Bundle: 35,268,936 compressed bytes; 82,516,219 extracted bytes; 1,948 files inside
+  one archive. Python 3.13.16, CyToolsCore 0.10.0 and exact dependencies are recorded
+  in bundle.json. Archive/inventory hashes, component licenses and absence of machine
+  direct_url metadata / bytecode caches were checked.
+- First-use setup supplies progress, Later/cancellation and Settings > Runtime.
+  New native screenshots are local Saved artifacts, not repository/package content.
+- This change was not built/run on UE 5.4–5.8 or non-Windows platforms. It supplies a
+  reference integration; existing user plugins were not migrated by this validation.

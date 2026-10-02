@@ -127,3 +127,17 @@ la demande de l’utilisateur. La validation locale 5.3 ne prouve pas 5.4–5.8.
 Mettre à jour Docs/CyUEMCPIntegration.md avec les changements, la version du composant,
 les tests réellement exécutés, les limites et les captures. Ne déclarer aucune
 validation réelle à partir de mocks uniquement. Préserver les fonctions spécifiques.
+
+
+## Offline assistant setup (0.1.7)
+
+Read [AssistantRuntime.md](AssistantRuntime.md). Ship the compressed offline archive
+with portable Python, the official Core package and companion dependencies. At first
+assistant opening, check compatible installations without extracting anything; propose
+installation only if missing/damaged and wait for the explicit Install action.
+Shared user storage is the default; plugin-local storage is optional. Preserve Later,
+cancellation, progress, license notices and Settings > Runtime. Share immutable code
+by exact archive hash, never profiles, tokens, conversations or task files. Adapt the
+bootstrap to the target plugin's existing Editor module and private settings/service
+names. No developer venv, loose Python tree, SDK checkout path or external SDK plugin
+is an end-user prerequisite. Test isolated plugins and simultaneous shared installs.

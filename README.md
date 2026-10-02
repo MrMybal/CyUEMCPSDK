@@ -1,6 +1,6 @@
-# CyUEMCPSDK 0.1.6
+# CyUEMCPSDK 0.1.7
 
-Unreal SDK modules using **CyToolsCore 0.9.0** contracts and **integrated provider transports**
+Unreal SDK modules using **CyToolsCore 0.10.0** contracts and **integrated provider transports**
 with no CyAIConnectorLab dependency. Separate minimal host plugin: **CyUEMCP**.
 
 - `CyUEMCPCore`: operation registry and common C++ contract.
@@ -15,7 +15,12 @@ See [provider setup](Docs/Providers.md) and [validation](Docs/Validation.md) for
 
 ## Installation
 
-Clone CyToolsCore alongside this repository, then create the optional companion runtime:
+The optional assistant includes an offline ZIP with Python and its dependencies.
+At first opening it checks for a compatible shared installation, then offers to
+install if needed. **Shared user storage is the default**; plugin-local storage is
+optional. See [Assistant runtime](Docs/AssistantRuntime.md).
+
+For development builds, clone CyToolsCore alongside this repository:
 
 ```powershell
 ./Scripts/Setup.ps1 -CoreRoot ../CyToolsCore
@@ -28,11 +33,10 @@ Unreal's Plugins window and restart. Open the assistant through the host integra
 API described in [AssistantContexts](Docs/AssistantContexts.md). Global Window menu
 entries are disabled by default; that guide documents an optional developer example menu.
 
-The assistant connects its local bridge automatically. If paths cannot be discovered,
-open **Settings > Providers > Advanced** and browse to:
-
-- Python: `<SDK_ROOT>/Runtime/python/Scripts/python.exe`
-- Script: `<SDK_ROOT>/Bridge/run.py`
+The assistant connects its local bridge automatically after runtime setup. Use
+**Settings > Runtime** to install, repair, check or choose Shared/Local storage.
+Installation needs your explicit click and works offline without existing Python.
+Custom Python/script paths are optional under **Providers > Advanced**.
 
 Default profiles cover **Codex App Server / CLI**, **Claude CLI**, **Antigravity CLI**,
 **OpenCode CLI**, **Ollama**, **Claude API**, **OpenRouter API** and **local llama.cpp**.
@@ -67,7 +71,7 @@ are running, generate a configuration without copying any secret into it:
 ```
 
 The generated stdio command runs `Bridge/run.py --editor <exact file> --mcp` with
-the private Python. The client uses **CyToolsCore's official MCP adapter**, including
+the verified installed runtime Python. The client uses **CyToolsCore's official MCP adapter**, including
 job polling, automatic file imports, export and FinishTask. Each editor instance has
 its own connection file; use the file for the current editor process ID.
 

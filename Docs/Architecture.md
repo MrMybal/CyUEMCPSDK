@@ -1,11 +1,11 @@
 # CyUEMCPSDK architecture
 
-Version 0.1.6. Target: Unreal Engine 5.3–5.8.
+Version 0.1.7. Target: Unreal Engine 5.3–5.8.
 A version is validated only after its actual compilation and runtime checks.
 
 ## Shared foundations
 
-- **CyToolsCore 0.9.0** owns manifests, parameter validation, authenticated identities,
+- **CyToolsCore 0.10.0** owns manifests, parameter validation, authenticated identities,
   sessions, jobs, resource reservations, task files and the official MCP transport.
 - **CyUEMCPSDK** contains its own provider transports in `Bridge/cyue_mcp/providers`:
   discovery, authentication, sessions, normalized events, process IO and descriptors.

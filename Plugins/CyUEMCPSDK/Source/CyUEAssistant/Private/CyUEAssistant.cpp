@@ -1,6 +1,6 @@
+#include "CyUEAssistant.h"
 #include "Containers/Ticker.h"
 #include "CyAssistantWebHost.h"
-#include "CyUEAssistant.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "Editor.h"
 #include "LevelEditorViewport.h"
@@ -50,6 +50,8 @@
 #include "Styling/AppStyle.h"
 #include "Widgets/Images/SImage.h"
 #include "CyChromeTabs.inl"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "CyAssistantRuntime.inl"
 #define LOCTEXT_NAMESPACE "CyUEAssistant"
 class SCyPanel : public SCompoundWidget
 {
@@ -125,27 +127,14 @@ class SCyPanel : public SCompoundWidget
     void Construct(const FArguments &Args)
     {
         bOwnBridge = Args._OwnBridge;
+        if (bOwnBridge)
+        {
+            GConfig->GetString(TEXT("CyUEMCP"), TEXT("RuntimeStorage"), CyAssistantRuntime.Mode, GEditorPerProjectIni);
+            if (CyAssistantRuntime.Mode != TEXT("Local")) CyAssistantRuntime.Mode = TEXT("Shared");
+        }
         FString PythonPath, ScriptPath;
         GConfig->GetString(TEXT("CyUEMCP"), TEXT("Python"), PythonPath, GEditorPerProjectIni);
         GConfig->GetString(TEXT("CyUEMCP"), TEXT("Script"), ScriptPath, GEditorPerProjectIni);
-        // Resolve defaults before any dock tab (including Connections) is opened.
-        for (auto *Value : {&PythonPath, &ScriptPath})
-        {
-            if (!Value->IsEmpty())
-                continue;
-            FString Root = IPluginManager::Get().FindPlugin(TEXT("CyUEMCPSDK"))->GetBaseDir();
-            for (int I = 0; I < 7; ++I)
-            {
-                FString Candidate = Root / (Value == &PythonPath ? TEXT("Runtime/python/Scripts/python.exe")
-                                                                 : TEXT("Bridge/run.py"));
-                if (FPaths::FileExists(Candidate))
-                {
-                    *Value = FPaths::ConvertRelativePathToFull(Candidate);
-                    break;
-                }
-                Root = FPaths::GetPath(Root);
-            }
-        }
         Python = SNew(SEditableTextBox).Text(FText::FromString(PythonPath));
         Script = SNew(SEditableTextBox).Text(FText::FromString(ScriptPath));
         Connector = SNew(SEditableTextBox);
@@ -593,10 +582,21 @@ class SCyPanel : public SCompoundWidget
             }
             return;
         }
+        if (!CyAssistantRuntime.Custom())
+        {
+            if (!CyAssistantRuntime.bReady)
+            {
+                if (CyAssistantRuntime.State.IsEmpty()) CyAssistantRuntime.Launch(TEXT("Check"));
+                NativeStatus = CyAssistantRuntime.Message + TEXT(" - Settings > Runtime");
+                return;
+            }
+            Python->SetText(FText::FromString(CyAssistantRuntime.Python));
+            Script->SetText(FText::FromString(CyAssistantRuntime.Script));
+        }
         FString Exe = Python->GetText().ToString(), Path = Script->GetText().ToString();
         if (!FPaths::FileExists(Exe) || !FPaths::FileExists(Path) || Path.Contains(TEXT("\"")))
         {
-            AssistantFailure(TEXT("Configure Python and Bridge/run.py in the Connections tab."));
+            AssistantFailure(TEXT("Custom runtime paths are invalid. Use Settings > Runtime or correct the Advanced override."));
             return;
         }
         if (Companion.IsValid() && FPlatformProcess::IsProcRunning(Companion))
@@ -613,7 +613,7 @@ class SCyPanel : public SCompoundWidget
         CompanionWrite = nullptr;
         FPlatformProcess::CreatePipe(CompanionRead, CompanionWrite);
         Companion = FPlatformProcess::CreateProc(
-            *Exe, *FString::Printf(TEXT("\"%s\" --editor \"%s\""), *Path, *File), false, true, true, nullptr,
+            *Exe, *FString::Printf(TEXT("-B \"%s\" --editor \"%s\""), *Path, *File), false, true, true, nullptr,
             0, *FPaths::GetPath(Path), CompanionWrite, nullptr, CompanionWrite);
         bConnecting = Companion.IsValid();
         ConnectDeadline = FPlatformTime::Seconds() + 30;
@@ -715,6 +715,20 @@ class SCyPanel : public SCompoundWidget
     }
     bool TickJob(float)
     {
+        if (bOwnBridge)
+        {
+            if (CyAssistantRuntime.Poll())
+            {
+                Append(TEXT("[runtime] ") + CyAssistantRuntime.Message);
+                if (CyAssistantRuntime.State == TEXT("Missing")) CyAssistantRuntime.Offer();
+                if (CyAssistantRuntime.bReady && Session.IsEmpty()) Start();
+            }
+        }
+        if (Session.IsEmpty() && !CyAssistantRuntime.Custom() && !CyAssistantRuntime.bReady)
+        {
+            NativeStatus = CyAssistantRuntime.Message + TEXT(" - Settings > Runtime");
+            if (bConnecting) ConnectDeadline = FPlatformTime::Seconds() + 30;
+        }
         if (CompanionRead)
         {
             FString Text = FPlatformProcess::ReadPipe(CompanionRead);
@@ -907,7 +921,7 @@ class SCyAssistantView : public SCompoundWidget
             auto Settings = SNew(SVerticalBox);
             auto Tabs = SNew(SHorizontalBox);
             int Index = 0;
-            for (auto Label : {TEXT("Providers"), TEXT("Connection logs")})
+            for (auto Label : {TEXT("Providers"), TEXT("Connection logs"), TEXT("Runtime")})
             {
                 int Page = Index++;
                 Tabs->AddSlot().AutoWidth()[SNew(SCyChromeTab)
@@ -924,7 +938,8 @@ class SCyAssistantView : public SCompoundWidget
 
             Settings->AddSlot().FillHeight(1)[SAssignNew(SettingsPages, SWidgetSwitcher) +
                                               SWidgetSwitcher::Slot()[Panel->ConnectionsWidget()] +
-                                              SWidgetSwitcher::Slot()[Panel->LogsWidget()]];
+                                              SWidgetSwitcher::Slot()[Panel->LogsWidget()] +
+                                              SWidgetSwitcher::Slot()[CyAssistantRuntime.Widget()]];
             auto Back = SNew(SBox).WidthOverride(28).HeightOverride(28)
                 [SNew(SButton)
                     .ButtonStyle(&FCyTabAppearance::Get().Icon)
@@ -980,7 +995,14 @@ class SCyAssistantView : public SCompoundWidget
     SLATE_END_ARGS()
     void Construct(const FArguments& Args)
     {
-        bOwnBridge = Args._OwnBridge; Context = Args._Context; ResolveContext = Args._ResolveContext;
+        bOwnBridge = Args._OwnBridge;
+        if (bOwnBridge)
+        {
+            GConfig->GetString(TEXT("CyUEMCP"), TEXT("RuntimeStorage"), CyAssistantRuntime.Mode, GEditorPerProjectIni);
+            if (CyAssistantRuntime.Mode != TEXT("Local")) CyAssistantRuntime.Mode = TEXT("Shared");
+        }
+        Context = Args._Context;
+        ResolveContext = Args._ResolveContext;
         ChildSlot[GetAssistant()];
     }
 #if WITH_DEV_AUTOMATION_TESTS
@@ -1064,6 +1086,7 @@ public:
     }
     void ShutdownModule() override
     {
+        CyAssistantRuntime.Shutdown();
         UToolMenus::UnRegisterStartupCallback(this); UToolMenus::UnregisterOwner(this);
         for (auto Weak : Windows) if (auto W = Weak.Pin()) W->RequestDestroyWindow();
         Windows.Empty();
@@ -1442,6 +1465,80 @@ bool FCyAssistantContextTest::RunTest(const FString&)
     FSlateApplication::Get().AddWindow(CyContextWindowA.ToSharedRef());
     CyContextPhase = 0; CyContextNext = 0; CyContextDeadline = FPlatformTime::Seconds()+90;
     ADD_LATENT_AUTOMATION_COMMAND(FCyWaitForContext(this));
+    return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+static TSharedPtr<SWindow> CyRuntimeWindow;
+static TSharedPtr<SCyPanel> CyRuntimePanel;
+static int32 CyRuntimePhase = 0;
+static double CyRuntimeDeadline = 0, CyRuntimeCaptureAt = 0;
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCyWaitForRuntimeSetup, FAutomationTestBase *, Test);
+bool FCyWaitForRuntimeSetup::Update()
+{
+    CyAssistantRuntime.Poll();
+    if (FPlatformTime::Seconds() > CyRuntimeDeadline || CyAssistantRuntime.State == TEXT("Error"))
+    {
+        Test->AddError(TEXT("Offline assistant setup failed: ") + CyAssistantRuntime.Message);
+        CyAssistantRuntime.Cancel();
+        CyRuntimeWindow->RequestDestroyWindow();
+        CyRuntimeWindow.Reset(); CyRuntimePanel.Reset();
+        return true;
+    }
+    if (CyAssistantRuntime.Running()) return false;
+    if (CyRuntimePhase == 0)
+    {
+        Test->TestEqual(TEXT("Shared user storage is the default"), CyAssistantRuntime.Mode, FString(TEXT("Shared")));
+        Test->TestEqual(TEXT("First check requires explicit installation"), CyAssistantRuntime.State, FString(TEXT("Missing")));
+        Test->TestFalse(TEXT("Check does not extract the archive"), FPaths::DirectoryExists(CyAssistantRuntime.Root));
+        CyCaptureWindow(CyRuntimeWindow, TEXT("cy-assistant-runtime-setup.png"));
+        CyAssistantRuntime.Install();
+        CyRuntimePhase = 1;
+    }
+    else if (CyRuntimePhase == 1)
+    {
+        Test->TestTrue(TEXT("Offline installed runtime is ready"), CyAssistantRuntime.bReady);
+        Test->TestTrue(TEXT("Portable Python exists"), FPaths::FileExists(CyAssistantRuntime.Python));
+        Test->TestTrue(TEXT("Companion code belongs to the installed bundle"), FPaths::FileExists(CyAssistantRuntime.Script));
+        CyCaptureWindow(CyRuntimeWindow, TEXT("cy-assistant-runtime-installed.png"));
+        CyAssistantRuntime.Launch(TEXT("Check"));
+        CyRuntimePhase = 2;
+    }
+    else if (CyRuntimePhase == 2)
+    {
+        Test->TestTrue(TEXT("Existing runtime is verified and reused"), CyAssistantRuntime.bReady);
+        CyRuntimePanel = SNew(SCyPanel);
+        CyRuntimeWindow->SetContent(CyRuntimePanel.ToSharedRef());
+        CyRuntimePhase = 3;
+    }
+    else if (CyRuntimePanel->SmokeConnected() && CyRuntimePanel->bPageReady)
+    {
+        if (CyRuntimeCaptureAt == 0) CyRuntimeCaptureAt = FPlatformTime::Seconds();
+        if (FPlatformTime::Seconds() - CyRuntimeCaptureAt < 1) return false;
+        Test->TestTrue(TEXT("Packaged companion creates a real SDK session in Unreal"), true);
+        CyCaptureWindow(CyRuntimeWindow, TEXT("cy-assistant-runtime-connected.png"));
+        CyRuntimeWindow->RequestDestroyWindow();
+        CyRuntimeWindow.Reset(); CyRuntimePanel.Reset();
+        return true;
+    }
+    return false;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCyAssistantRuntimeTest, "CyUEMCP.Assistant.OfflineRuntimeSetup",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FCyAssistantRuntimeTest::RunTest(const FString &)
+{
+    CyAssistantRuntime.Shutdown();
+    CyAssistantRuntime.SelectMode(TEXT("Shared"));
+    CyAssistantRuntime.bAsked = true; // Automated consent is explicit below.
+    CyAssistantRuntime.TestStorageRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("RuntimeSetupTest") / FGuid::NewGuid().ToString(EGuidFormats::Digits));
+    CyRuntimeWindow = SNew(SWindow).Title(FText::FromString(TEXT("Assistant runtime test")))
+        .ClientSize(FVector2D(600, 430))[CyAssistantRuntime.Widget()];
+    FSlateApplication::Get().AddWindow(CyRuntimeWindow.ToSharedRef(), true);
+    CyAssistantRuntime.Launch(TEXT("Check"));
+    CyRuntimePhase = 0; CyRuntimeCaptureAt = 0;
+    CyRuntimeDeadline = FPlatformTime::Seconds() + 150;
+    ADD_LATENT_AUTOMATION_COMMAND(FCyWaitForRuntimeSetup(this));
     return true;
 }
 #endif

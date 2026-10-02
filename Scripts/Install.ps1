@@ -17,5 +17,4 @@ foreach($Name in @('CyUEMCPSDK','CyUEMCP')){
  Copy-Item -LiteralPath "$Root\Builds\UE$Version\Plugins\$Name\Binaries" -Destination $Target -Recurse
 }
 Write-Output 'Enable CyUEMCP in Unreal Plugins, then restart. Open the assistant from its host integration; see Docs/AssistantContexts.md.'
-Write-Output "Companion Python: $Root\Runtime\python\Scripts\python.exe"
-Write-Output "Companion script: $Root\Bridge\run.py"
+Write-Output 'The assistant offers offline runtime setup at first opening. Shared user storage is the default; Settings > Runtime can install, check or repair it.'
