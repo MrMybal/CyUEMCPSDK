@@ -1,6 +1,6 @@
 """Build a self-contained Windows assistant archive; maintainer tool, never run by users."""
 from __future__ import annotations
-import argparse, hashlib, importlib.metadata, json, pathlib, shutil, subprocess, sys, tempfile, zipfile
+import argparse, csv, hashlib, importlib.metadata, io, json, pathlib, shutil, subprocess, sys, tempfile, zipfile
 
 PYTHON_VERSION = "3.13.16"
 PYTHON_SHA256 = "97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297"
@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--python-zip", type=pathlib.Path, required=True)
     parser.add_argument("--core-wheel", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path)
+    parser.add_argument("--constraints", type=pathlib.Path, help="Pinned dependency versions for a license-only rebuild")
     args = parser.parse_args()
     root = pathlib.Path(__file__).resolve().parents[1]
     output = args.output or root / "Plugins/CyUEMCPSDK/Resources/AssistantRuntime"
@@ -28,10 +29,24 @@ def main():
         site = stage / "Lib/site-packages"
         subprocess.run([sys.executable, "-m", "pip", "install", "--isolated", "--disable-pip-version-check", "--keyring-provider", "disabled",
                         "--target", str(site), "--platform", "win_amd64", "--implementation", "cp", "--python-version", "3.13", "--abi", "cp313",
-                        "--only-binary=:all:", "--ignore-installed", "--no-compile", str(args.core_wheel.resolve()),
+                        "--only-binary=:all:", "--ignore-installed", "--no-compile",
+                        *(["--constraint", str(args.constraints.resolve())] if args.constraints else []), str(args.core_wheel.resolve()),
                         "mcp==1.30.0", "Pillow>=11,<13", "pypdf>=6,<7"], check=True)
+        # pip console launchers reference temporary build Python paths. The embedded
+        # runtime starts companion/run.py directly and does not distribute these launchers.
+        launchers = site / "bin"
+        if launchers.exists():
+            assert launchers.resolve().is_relative_to(stage.resolve())
+            shutil.rmtree(launchers)
+        for record in site.glob("*.dist-info/RECORD"):
+            rows = list(csv.reader(io.StringIO(record.read_text(encoding="utf-8"))))
+            rows = [row for row in rows if not row[0].startswith("../../bin/")]
+            with record.open("w", encoding="utf-8", newline="") as stream:
+                csv.writer(stream).writerows(rows)
         shutil.copytree(root / "Bridge/cyue_mcp", stage / "companion/cyue_mcp", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copyfile(root / "Bridge/run.py", stage / "companion/run.py")
+        shutil.copyfile(root / "LICENSE", stage / "companion/LICENSE")
+        shutil.copyfile(root / "LICENSE", output / "LICENSE-CyUEMCPSDK.txt")
         (stage / "python313._pth").write_text("python313.zip\n.\nLib/site-packages\nLib/site-packages/win32\nLib/site-packages/win32/lib\nLib/site-packages/Pythonwin\ncompanion\n", encoding="utf-8")
         for metadata in site.glob("*.dist-info/direct_url.json"):
             metadata.unlink()  # Build machine paths are not distribution metadata.
@@ -69,12 +84,19 @@ print(json.dumps({"python": sys.version.split()[0], "sdk": cyue_mcp.__version__}
         manifest = {k: v for k, v in inside.items() if k not in ("files", "licenses")}
         manifest.update(archive=archive.name, sha256=digest(archive), pythonSha256=files["python.exe"],
                         runtimeManifestSha256=digest(stage / "runtime-manifest.json"), compressedBytes=archive.stat().st_size, extractedBytes=sum(p.stat().st_size for p in stage.rglob("*") if p.is_file()), fileCount=len(files)+1)
-        licenses = ["Assistant runtime component notices", "", "Portable CPython " + PYTHON_VERSION + " | Python Software Foundation License", "CyUEMCPSDK " + version + " | licensing is specified by the embedding plugin author", "", "Installed dependency metadata and license texts:"]
+        licenses = ["Assistant runtime component notices", "", "Portable CPython " + PYTHON_VERSION + " | Python Software Foundation License", "CyUEMCPSDK " + version + " | MIT (see companion/LICENSE)", "", "Installed dependency metadata and license texts:"]
         for distribution in sorted(importlib.metadata.distributions(path=[str(site)]), key=lambda d: d.metadata["Name"].lower()):
             license_name = distribution.metadata.get("License-Expression") or distribution.metadata.get("License") or "See included component license"
             licenses.append(distribution.metadata["Name"] + " " + distribution.version + " | " + license_name)
         licenses += ["", "Full license files inside the archive and installed runtime:"] + inside["licenses"]
         (output / "Licenses.txt").write_text("\n".join(licenses) + "\n", encoding="utf-8")
+        plugin_licenses = root / "Plugins/CyUEMCPSDK/LICENCES"
+        plugin_licenses.mkdir(exist_ok=True)
+        shutil.copyfile(root / "LICENSE", plugin_licenses / "CyUEMCPSDK-MIT.txt")
+        shutil.copyfile(output / "Licenses.txt", plugin_licenses / "AssistantRuntime-Notices.txt")
+        core_version = next(v for k, v in versions.items() if k.lower() == "cytools-core")
+        shutil.copyfile(site / ("cytools_core-" + core_version + ".dist-info/licenses/LICENSE"),
+                        plugin_licenses / "CyToolsCore-MIT.txt")
         (output / "bundle.json").write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
         print(json.dumps({"archive": str(archive), "compressedBytes": manifest["compressedBytes"], "extractedBytes": manifest["extractedBytes"], "sha256": manifest["sha256"]}))
 

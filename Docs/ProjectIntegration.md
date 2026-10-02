@@ -249,3 +249,11 @@ by exact archive hash, never profiles, tokens, conversations or task files. Adap
 bootstrap to the target plugin's existing Editor module and private settings/service
 names. No developer venv, loose Python tree, SDK checkout path or external SDK plugin
 is an end-user prerequisite. Test isolated plugins and simultaneous shared installs.
+
+
+## Required LICENCES folder in embedded plugins
+
+Read [Licensing.md](Licensing.md). Every integration must ship the complete SDK MIT
+notice at <Plugin>/LICENCES/CyUEMCPSDK-MIT.txt. Include Core/runtime component notices
+when bundled, preserve the target plugin's own license, and verify LICENCES is present
+in the delivered source/binary/Fab package, not only the checkout.

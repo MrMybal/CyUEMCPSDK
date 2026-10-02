@@ -8,7 +8,7 @@ foreach($Version in $Versions){
   $PluginTarget=Join-Path "$Build\Plugins" $PluginName
   New-Item -ItemType Directory -Force $PluginTarget | Out-Null
   Copy-Item -LiteralPath "$Root\Plugins\$PluginName\$PluginName.uplugin" -Destination $PluginTarget -Force
-  foreach($Folder in @('Source','Resources','Config','Content')) {
+  foreach($Folder in @('Source','Resources','Config','Content','LICENCES')) {
    $PluginSource=Join-Path "$Root\Plugins\$PluginName" $Folder
    if(Test-Path -LiteralPath $PluginSource) { Copy-Item -LiteralPath $PluginSource -Destination $PluginTarget -Recurse -Force }
   }

@@ -12,6 +12,9 @@ foreach($Name in @('CyUEMCPSDK','CyUEMCP')){
  $Target=Join-Path $Destination $Name
  New-Item -ItemType Directory -Force $Target | Out-Null
  Copy-Item -LiteralPath "$Root\Plugins\$Name\$Name.uplugin" -Destination $Target
+ Copy-Item -LiteralPath "$Root\Plugins\$Name\LICENSE" -Destination $Target
+ Copy-Item -LiteralPath "$Root\Plugins\$Name\LICENCES" -Destination $Target -Recurse
+ if(Test-Path "$Root\Plugins\$Name\Config"){Copy-Item -LiteralPath "$Root\Plugins\$Name\Config" -Destination $Target -Recurse}
  if(Test-Path "$Root\Plugins\$Name\Resources"){Copy-Item -LiteralPath "$Root\Plugins\$Name\Resources" -Destination $Target -Recurse}
  Copy-Item -LiteralPath "$Root\Plugins\$Name\Source" -Destination $Target -Recurse
  Copy-Item -LiteralPath "$Root\Builds\UE$Version\Plugins\$Name\Binaries" -Destination $Target -Recurse

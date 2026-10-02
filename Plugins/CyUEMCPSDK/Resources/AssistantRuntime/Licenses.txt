@@ -1,7 +1,7 @@
 Assistant runtime component notices
 
 Portable CPython 3.13.16 | Python Software Foundation License
-CyUEMCPSDK 0.1.7 | licensing is specified by the embedding plugin author
+CyUEMCPSDK 0.1.8 | MIT (see companion/LICENSE)
 
 Installed dependency metadata and license texts:
 annotated-types 0.8.0 | MIT
@@ -11,7 +11,7 @@ certifi 2026.7.22 | MPL-2.0
 cffi 2.1.1 | MIT-0
 click 8.5.0 | BSD-3-Clause
 cryptography 50.0.2 | Apache-2.0 OR BSD-3-Clause
-cytools-core 0.10.0 | GPL-3.0-only
+cytools-core 0.10.1 | MIT
 h11 0.16.0 | MIT
 httpcore 1.0.9 | BSD-3-Clause
 httpx 0.28.1 | BSD-3-Clause
@@ -40,6 +40,7 @@ typing_extensions 4.16.0 | PSF-2.0
 uvicorn 0.54.0 | BSD-3-Clause
 
 Full license files inside the archive and installed runtime:
+companion/LICENSE
 Lib/site-packages/adodbapi/license.txt
 Lib/site-packages/annotated_types-0.8.0.dist-info/licenses/LICENSE
 Lib/site-packages/anyio-4.15.1.dist-info/licenses/LICENSE
@@ -50,7 +51,8 @@ Lib/site-packages/click-8.5.0.dist-info/licenses/LICENSE.txt
 Lib/site-packages/cryptography-50.0.2.dist-info/licenses/LICENSE
 Lib/site-packages/cryptography-50.0.2.dist-info/licenses/LICENSE.APACHE
 Lib/site-packages/cryptography-50.0.2.dist-info/licenses/LICENSE.BSD
-Lib/site-packages/cytools_core-0.10.0.dist-info/licenses/LICENSE
+Lib/site-packages/cytools_core/templates/LICENSE-CyToolsCore.txt
+Lib/site-packages/cytools_core-0.10.1.dist-info/licenses/LICENSE
 Lib/site-packages/h11-0.16.0.dist-info/licenses/LICENSE.txt
 Lib/site-packages/httpcore-1.0.9.dist-info/licenses/LICENSE.md
 Lib/site-packages/httpx-0.28.1.dist-info/licenses/LICENSE.md

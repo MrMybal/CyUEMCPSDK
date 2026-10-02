@@ -1,10 +1,10 @@
 {
   "abi": "cp313",
   "archive": "assistant-win64-cp313.zip",
-  "compressedBytes": 35268936,
+  "compressedBytes": 34671721,
   "entryPoint": "companion/run.py",
-  "extractedBytes": 82516219,
-  "fileCount": 1948,
+  "extractedBytes": 81262359,
+  "fileCount": 1938,
   "formatVersion": 1,
   "packages": {
     "PyJWT": "2.15.1",
@@ -15,7 +15,7 @@
     "cffi": "2.1.1",
     "click": "8.5.0",
     "cryptography": "50.0.2",
-    "cytools-core": "0.10.0",
+    "cytools-core": "0.10.1",
     "h11": "0.16.0",
     "httpcore": "1.0.9",
     "httpx": "0.28.1",
@@ -46,7 +46,7 @@
   "pythonExecutable": "python.exe",
   "pythonSha256": "31fe10b4ed82a2f960af0ef9931f46a4b84ff286f8b6ffd9dee098cf4f10f17f",
   "pythonVersion": "3.13.16",
-  "runtimeManifestSha256": "7845907fc96b635ef16909b1d1a22766dfed962f34aa0b8484e962dce490732e",
-  "sdkVersion": "0.1.7",
-  "sha256": "2e4acfb154121fe76b766171dcab4a3bc1d46c8b9fa3231c31f6c828f91c12de"
+  "runtimeManifestSha256": "c98bd1c287748e5d3e18adceb06e18f18c50bb7df539432abadadcf312aed250",
+  "sdkVersion": "0.1.8",
+  "sha256": "3e1dcb46434de3c4d3db1878412513d557af1dbac36f4e9b605319b447e830b6"
 }

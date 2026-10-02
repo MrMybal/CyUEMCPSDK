@@ -1,7 +1,7 @@
-# Assistant runtime installation (0.1.7)
+# Assistant runtime installation (0.1.8)
 
 The Windows assistant ships one offline ZIP containing portable CPython 3.13.16,
-CyToolsCore 0.10.0, the integrated companion and its exact dependencies. The ZIP
+CyToolsCore 0.10.1, the integrated companion and its exact dependencies. The ZIP
 contains no model weights, GPU runtime, provider CLI, account or credential.
 It works without Python installed on the computer. Linux/macOS bundles are not supplied.
 
@@ -96,3 +96,13 @@ Validate both first-install and reuse on a clean machine/account without Python;
 check cancellation, concurrent installations, damage/repair, and isolation between
 embedded plugins. The new native UI is validated on UE 5.3 first; do not claim newer
 engine versions are validated by this change.
+
+## MIT bundle (0.1.8)
+
+Core 0.10.1 and CyUEMCPSDK 0.1.8 use MIT; read [Licensing.md](Licensing.md).
+Keep LICENSE-CyUEMCPSDK.txt with the notices and companion/LICENSE inside the ZIP.
+For a license-only rebuild, pass --constraints with the previous exact dependency pins
+(excluding the replaced Core wheel) to PackageAssistantRuntime.py.
+
+Embedded plugin deliveries must also include the root LICENCES folder described
+in Licensing.md. PackageAssistantRuntime.py refreshes the reference plugin notices.

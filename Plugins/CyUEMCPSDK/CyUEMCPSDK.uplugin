@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
-  "Version": 8,
-  "VersionName": "0.1.7",
+  "Version": 9,
+  "VersionName": "0.1.8",
   "FriendlyName": "Cy Unreal MCP SDK",
   "Description": "CyTools conventions, modular Unreal bridge and assistant.",
   "Category": "Cyberalien",

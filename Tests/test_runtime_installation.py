@@ -40,7 +40,7 @@ def test_offline_python_and_exact_dependencies(installed):
     process = subprocess.run([result['python'], '-B', str(Path(result['root']) / 'verify-runtime.py')], capture_output=True, text=True)
     assert process.returncode == 0, process.stderr
     check = json.loads(process.stdout)
-    assert check == {'python': '3.13.16', 'sdk': '0.1.7'}
+    assert check == {'python': '3.13.16', 'sdk': '0.1.8'}
     assert Path(result['script']).is_file()
     assert not list(Path(result['root']).rglob('direct_url.json'))
     assert not list(Path(result['root']).rglob('__pycache__'))

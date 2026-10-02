@@ -1,7 +1,7 @@
 # Mettre à jour l'installation de l'assistant Unreal
 
 Ce document est le point d'entrée pour une IA chargée de mettre à jour un plugin
-qui contient déjà l'assistant. Référence : CyUEMCPSDK 0.1.7 ou version ultérieure.
+qui contient déjà l'assistant. Référence : CyUEMCPSDK 0.1.8 ou version ultérieure.
 Le dossier de ce document appartient au SDK de référence ; le plugin cible est
 celui indiqué par l'utilisateur ou ouvert dans l'espace de travail.
 
@@ -79,3 +79,18 @@ Valider l'interface sur UE 5.3 en premier, puis les versions demandées pour le 
 Ne pas déclarer testée une version seulement prévue. Mettre à jour sa documentation
 et rendre un compte rendu bref : sauvegarde, changements, validations et limites.
 Ne pas pousser ou publier automatiquement.
+
+## MIT distribution (0.1.8)
+
+Read [Licensing.md](Licensing.md). Preserve the SDK MIT notice in each embedded
+plugin, alongside third-party notices. Use Core 0.10.1 or later and the 0.1.8 bundle;
+replace ZIP, bundle.json, Licenses.txt and LICENSE-CyUEMCPSDK.txt together.
+Do not only edit a notice in an older GPL runtime; rebuild or replace its Core wheel.
+
+
+## Required LICENCES folder in embedded plugins
+
+Read [Licensing.md](Licensing.md). Every integration must ship the complete SDK MIT
+notice at <Plugin>/LICENCES/CyUEMCPSDK-MIT.txt. Include Core/runtime component notices
+when bundled, preserve the target plugin's own license, and verify LICENCES is present
+in the delivered source/binary/Fab package, not only the checkout.

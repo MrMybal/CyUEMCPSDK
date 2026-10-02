@@ -151,3 +151,18 @@ by exact archive hash, never profiles, tokens, conversations or task files. Adap
 bootstrap to the target plugin's existing Editor module and private settings/service
 names. No developer venv, loose Python tree, SDK checkout path or external SDK plugin
 is an end-user prerequisite. Test isolated plugins and simultaneous shared installs.
+
+## MIT distribution (0.1.8)
+
+Read [Licensing.md](Licensing.md). Preserve the SDK MIT notice in each embedded
+plugin, alongside third-party notices. Use Core 0.10.1 or later and the 0.1.8 bundle;
+replace ZIP, bundle.json, Licenses.txt and LICENSE-CyUEMCPSDK.txt together.
+Do not only edit a notice in an older GPL runtime; rebuild or replace its Core wheel.
+
+
+## Required LICENCES folder in embedded plugins
+
+Read [Licensing.md](Licensing.md). Every integration must ship the complete SDK MIT
+notice at <Plugin>/LICENCES/CyUEMCPSDK-MIT.txt. Include Core/runtime component notices
+when bundled, preserve the target plugin's own license, and verify LICENCES is present
+in the delivered source/binary/Fab package, not only the checkout.

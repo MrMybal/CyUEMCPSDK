@@ -54,3 +54,17 @@ included in source distributions.
   New native screenshots are local Saved artifacts, not repository/package content.
 - This change was not built/run on UE 5.4–5.8 or non-Windows platforms. It supplies a
   reference integration; existing user plugins were not migrated by this validation.
+
+## 0.1.8 — MIT distributions and integration notices
+
+Core 0.10.1 and companion 0.1.8 wheels/sdists contain the full MIT text and
+License-Expression: MIT metadata. The rebuilt offline archive includes both MIT
+notices, exact dependency versions and verified file/archive inventories.
+The reference plugins include root LICENCES folders; build/install scripts and
+BuildPlugin filters preserve them. Integration guides require the same in target plugins.
+
+Validation: 135 Core tests and 38 companion tests passed, including 10 Windows offline
+bootstrap tests. The final archive's install/import/reuse path was checked again.
+Core scaffold delivery checks verify the generated Tool paths after adding its MIT notice.
+No C++ or UI changes are included; prior engine build/UI evidence above remains applicable,
+without claiming new compilations for UE 5.3–5.8 in this licensing update.

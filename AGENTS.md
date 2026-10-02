@@ -22,3 +22,5 @@ Target Fab plugin migrations embed the assistant/MCP/providers in the target exi
 Read Docs/AssistantContexts.md for per-host chat instances, contextual metadata, asset reference drops and temporary viewport screenshots. Keep a small actual-version footer. Validate new UI on UE 5.3 before broad migration.
 
 Read Docs/AssistantRuntime.md: optional offline ZIP with Python and runtime dependencies; background check at assistant opening, explicit Install consent, Shared user storage by default and optional plugin-local storage. Share exact immutable bundles only; isolate plugin identities/settings/tasks. Do not ship a developer venv or require a system Python. Validate new native setup on UE 5.3 first.
+
+Read Docs/Licensing.md. Every embedded plugin must distribute root LICENCES/CyUEMCPSDK-MIT.txt with the full SDK MIT/copyright text; add Core and runtime notices when included. Preserve the target plugin license and include LICENCES in final packages.
